@@ -1,5 +1,5 @@
 import { requireContext } from "@/lib/queries/auth";
-import { getAudits, getSites, getProviders, getProfiles } from "@/lib/queries/entities";
+import { getAudits, getSites, getProviders, getProfiles, getAuditStatsMap, getDocuments } from "@/lib/queries/entities";
 import { createAudit } from "@/lib/actions/entities";
 import { PageHeader } from "@/components/app/page-header";
 import { AddPanel } from "@/components/app/add-panel";
@@ -26,14 +26,25 @@ export default async function AuditsPage({
   const page = Math.max(1, Number(sp.page ?? 1));
   const includeArchived = sp.archived === "1";
 
-  const [{ rows, count }, sites, providers, profiles] = await Promise.all([
+  const [{ rows, count }, sites, providers, profiles, documents] = await Promise.all([
     getAudits(company.id, { search: sp.q, status: sp.status, includeArchived, page, pageSize: PAGE_SIZE }),
     getSites(company.id, { pageSize: 500 }),
     getProviders(company.id, { pageSize: 500 }),
     getProfiles(company.id),
+    getDocuments(company.id, { pageSize: 500 }),
   ]);
 
+  const stats = await getAuditStatsMap(company.id, rows.map((a) => a.id));
+  const docTitle = new Map(documents.rows.map((d) => [d.id, d.title]));
+
   const siteName = (id: string | null) => sites.rows.find((sx) => sx.id === id)?.name ?? "—";
+
+  const profName = (id: string | null) => {
+    if (!id) return "—";
+    const p = profiles.find((x) => x.id === id);
+    if (!p) return "—";
+    return [p.first_name, p.last_name].filter(Boolean).join(" ") || p.email || "—";
+  };
 
   return (
     <div>
@@ -66,6 +77,10 @@ export default async function AuditsPage({
           { header: "Site", cell: (a) => siteName(a.site_id) },
           { header: "Date prévue", cell: (a) => formatDate(a.planned_date) },
           { header: "Résultat", cell: (a) => a.result ? (AUDIT_RESULT_LABELS[a.result] ?? a.result) : "—" },
+          { header: "Responsable", cell: (a) => profName(a.responsible_id) },
+          { header: "Rapport", cell: (a) => a.report_document_id ? (docTitle.get(a.report_document_id) ?? "Disponible") : "—" },
+          { header: "NC", align: "right", cell: (a) => stats.get(a.id)?.ncCount ?? 0 },
+          { header: "Actions ouvertes", align: "right", cell: (a) => stats.get(a.id)?.openActions ?? 0 },
           { header: "Statut", cell: (a) => <StatusBadge status={(AUDIT_STATUS_TONE[a.status] ?? "none") as ComplianceStatus} label={AUDIT_STATUS_LABELS[a.status] ?? a.status} /> },
         ]}
         card={(a) => ({
@@ -74,6 +89,7 @@ export default async function AuditsPage({
           fields: [
             { label: "Site", value: siteName(a.site_id) },
             { label: "Date prévue", value: formatDate(a.planned_date) },
+            { label: "Responsable", value: profName(a.responsible_id) },
           ],
         })}
         actions={(a) => <ArchiveButton table="audits" id={a.id} archived={a.is_archived} />}

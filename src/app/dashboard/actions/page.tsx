@@ -1,22 +1,30 @@
 import { requireContext } from "@/lib/queries/auth";
-import { getActions, getObligations, getProfiles } from "@/lib/queries/entities";
-import { createAction } from "@/lib/actions/entities";
+import {
+  getActions,
+  getObligations,
+  getProfiles,
+  getVehicles,
+  getEmployees,
+  getEquipments,
+  getSites,
+  getEntityNameMap,
+} from "@/lib/queries/entities";
 import { PageHeader } from "@/components/app/page-header";
 import { AddPanel } from "@/components/app/add-panel";
 import { ListToolbar } from "@/components/app/list-toolbar";
 import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
-import { Button } from "@/components/ui/button";
-import { Input, Label, Select, Textarea } from "@/components/ui/input";
+import { Select } from "@/components/ui/input";
 import { ListView } from "@/components/app/list-view";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { ActionForm, type EntityOption } from "@/components/actions/action-form";
 import {
   ACTION_STATUS_LABELS,
   PRIORITY_LABELS,
   complianceFromActionStatus,
 } from "@/lib/status";
+import { RELATED_ENTITY_LABELS } from "@/types/enums";
 import { formatDate } from "@/lib/utils";
-import type { Obligation, Profile } from "@/lib/types/database";
 
 const PAGE_SIZE = 20;
 
@@ -30,23 +38,43 @@ export default async function ActionsPage({
   const page = Math.max(1, Number(sp.page ?? 1));
   const includeArchived = sp.archived === "1";
 
-  const [{ rows, count }, profiles, obligations] = await Promise.all([
-    getActions(company.id, {
-      search: sp.q,
-      status: sp.status,
-      includeArchived,
-      page,
-      pageSize: PAGE_SIZE,
-    }),
-    getProfiles(company.id),
-    getObligations(company.id, { pageSize: 200 }),
-  ]);
+  const [{ rows, count }, profiles, obligations, employees, equipments, vehicles, sites, entMap] =
+    await Promise.all([
+      getActions(company.id, {
+        search: sp.q,
+        status: sp.status,
+        includeArchived,
+        page,
+        pageSize: PAGE_SIZE,
+      }),
+      getProfiles(company.id),
+      getObligations(company.id, { pageSize: 200 }),
+      getEmployees(company.id, { pageSize: 500 }),
+      getEquipments(company.id, { pageSize: 500 }),
+      getVehicles(company.id, { pageSize: 500 }),
+      getSites(company.id, { pageSize: 500 }),
+      getEntityNameMap(company.id),
+    ]);
+
+  // Options pour le sélecteur d'entité liée (formulaire)
+  const entities: Record<string, EntityOption[]> = {
+    VEHICLE: vehicles.rows.map((v) => ({ id: v.id, label: v.registration_number })),
+    EMPLOYEE: employees.rows.map((e) => ({ id: e.id, label: [e.first_name, e.last_name].filter(Boolean).join(" ") })),
+    EQUIPMENT: equipments.rows.map((q) => ({ id: q.id, label: q.name })),
+    SITE: sites.rows.map((s) => ({ id: s.id, label: s.name })),
+  };
+  entities.DRIVER = entities.EMPLOYEE;
 
   const nameOf = (id: string | null) => {
     if (!id) return "—";
     const p = profiles.find((x) => x.id === id);
     return p ? [p.first_name, p.last_name].filter(Boolean).join(" ") || p.email || "—" : "—";
   };
+
+  const relatedEntityLabel = (a: (typeof rows)[number]) =>
+    a.related_entity_id
+      ? `${RELATED_ENTITY_LABELS[a.related_entity_type as keyof typeof RELATED_ENTITY_LABELS] ?? ""} ${entMap.get(a.related_entity_id) ?? "—"}`.trim()
+      : "—";
 
   return (
     <div>
@@ -55,7 +83,7 @@ export default async function ActionsPage({
         description="Suivi des actions correctives et plans d'action."
         action={
           <AddPanel title="Nouvelle action">
-            <ActionForm profiles={profiles} obligations={obligations.rows} />
+            <ActionForm profiles={profiles} obligations={obligations.rows} entities={entities} />
           </AddPanel>
         }
       />
@@ -78,8 +106,9 @@ export default async function ActionsPage({
         empty="Aucune action."
         columns={[
           { header: "Titre", cell: (a) => <span className="font-medium">{a.title}</span> },
+          { header: "Entité liée", cell: (a) => relatedEntityLabel(a) },
+          { header: "Source", cell: (a) => a.source ?? "—" },
           { header: "Assigné à", cell: (a) => nameOf(a.assigned_to) },
-          { header: "Superviseur", cell: (a) => nameOf(a.supervisor_id) },
           { header: "Priorité", cell: (a) => PRIORITY_LABELS[a.priority] },
           { header: "Échéance", cell: (a) => formatDate(a.due_date) },
           { header: "Statut", cell: (a) => <StatusBadge status={complianceFromActionStatus(a.status)} label={ACTION_STATUS_LABELS[a.status]} /> },
@@ -88,7 +117,7 @@ export default async function ActionsPage({
           title: a.title,
           badge: <StatusBadge status={complianceFromActionStatus(a.status)} label={ACTION_STATUS_LABELS[a.status]} />,
           fields: [
-            { label: "Assigné à", value: nameOf(a.assigned_to) },
+            { label: "Entité liée", value: relatedEntityLabel(a) },
             { label: "Échéance", value: formatDate(a.due_date) },
           ],
         })}
@@ -103,78 +132,5 @@ export default async function ActionsPage({
         params={{ q: sp.q, status: sp.status, archived: sp.archived }}
       />
     </div>
-  );
-}
-
-function ActionForm({ profiles, obligations }: { profiles: Profile[]; obligations: Obligation[] }) {
-  return (
-    <form action={createAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <div className="sm:col-span-2">
-        <Label>Titre</Label>
-        <Input name="title" required />
-      </div>
-      <div>
-        <Label>Statut</Label>
-        <Select name="status" defaultValue="TODO">
-          {Object.entries(ACTION_STATUS_LABELS).map(([v, l]) => (
-            <option key={v} value={v}>{l}</option>
-          ))}
-        </Select>
-      </div>
-      <div>
-        <Label>Priorité</Label>
-        <Select name="priority" defaultValue="MEDIUM">
-          {Object.entries(PRIORITY_LABELS).map(([v, l]) => (
-            <option key={v} value={v}>{l}</option>
-          ))}
-        </Select>
-      </div>
-      <div>
-        <Label>Date d&apos;échéance</Label>
-        <Input name="due_date" type="date" />
-      </div>
-      <div>
-        <Label>Catégorie</Label>
-        <Input name="category" placeholder="RH, Maintenance, Parc…" />
-      </div>
-      <div>
-        <Label>Assigné à</Label>
-        <Select name="assigned_to" defaultValue="">
-          <option value="">Non assigné</option>
-          {profiles.map((p) => (
-            <option key={p.id} value={p.id}>
-              {[p.first_name, p.last_name].filter(Boolean).join(" ") || p.email}
-            </option>
-          ))}
-        </Select>
-      </div>
-      <div>
-        <Label>Superviseur</Label>
-        <Select name="supervisor_id" defaultValue="">
-          <option value="">Non assigné</option>
-          {profiles.map((p) => (
-            <option key={p.id} value={p.id}>
-              {[p.first_name, p.last_name].filter(Boolean).join(" ") || p.email}
-            </option>
-          ))}
-        </Select>
-      </div>
-      <div>
-        <Label>Obligation liée</Label>
-        <Select name="obligation_id" defaultValue="">
-          <option value="">Aucune</option>
-          {obligations.map((o) => (
-            <option key={o.id} value={o.id}>{o.title}</option>
-          ))}
-        </Select>
-      </div>
-      <div className="sm:col-span-2">
-        <Label>Description</Label>
-        <Textarea name="description" />
-      </div>
-      <div className="sm:col-span-2">
-        <Button type="submit">Enregistrer l&apos;action</Button>
-      </div>
-    </form>
   );
 }

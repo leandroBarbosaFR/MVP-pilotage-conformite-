@@ -1,5 +1,5 @@
 import { requireContext } from "@/lib/queries/auth";
-import { getVehicles, getProfiles } from "@/lib/queries/entities";
+import { getVehicles, getProfiles, getEntityComplianceMap } from "@/lib/queries/entities";
 import { createVehicle } from "@/lib/actions/entities";
 import { PageHeader } from "@/components/app/page-header";
 import { AddPanel } from "@/components/app/add-panel";
@@ -9,6 +9,8 @@ import { ArchiveButton } from "@/components/app/archive-button";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { ListView } from "@/components/app/list-view";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { STATUS_LABELS } from "@/lib/status";
 import { formatDate } from "@/lib/utils";
 import type { Profile } from "@/lib/types/database";
 
@@ -24,7 +26,7 @@ export default async function VehiclesPage({
   const page = Math.max(1, Number(sp.page ?? 1));
   const includeArchived = sp.archived === "1";
 
-  const [{ rows, count }, profiles] = await Promise.all([
+  const [{ rows, count }, profiles, comp] = await Promise.all([
     getVehicles(company.id, {
       search: sp.q,
       includeArchived,
@@ -32,7 +34,18 @@ export default async function VehiclesPage({
       pageSize: PAGE_SIZE,
     }),
     getProfiles(company.id),
+    getEntityComplianceMap(company.id, ["VEHICLE"]),
   ]);
+
+  const profName = (id: string | null) => {
+    if (!id) return "—";
+    const p = profiles.find((x) => x.id === id);
+    return p ? [p.first_name, p.last_name].filter(Boolean).join(" ") || p.email || "—" : "—";
+  };
+  const compBadge = (id: string) => {
+    const st = comp.get(id)?.status ?? "none";
+    return <StatusBadge status={st} label={STATUS_LABELS[st]} />;
+  };
 
   return (
     <div>
@@ -56,16 +69,19 @@ export default async function VehiclesPage({
         columns={[
           { header: "Immatriculation", cell: (v) => <span className="font-medium">{v.registration_number}</span> },
           { header: "Type", cell: (v) => v.vehicle_type ?? "—" },
-          { header: "Marque", cell: (v) => v.brand ?? "—" },
-          { header: "Modèle", cell: (v) => v.model ?? "—" },
-          { header: "Mise en service", cell: (v) => formatDate(v.service_date) },
-          { header: "Statut", cell: (v) => v.status },
+          { header: "Conformité", cell: (v) => compBadge(v.id) },
+          { header: "Prochaine échéance", cell: (v) => formatDate(comp.get(v.id)?.nextDue ?? null) },
+          { header: "Docs manquants", align: "right", cell: (v) => comp.get(v.id)?.missingDocs ?? 0 },
+          { header: "Actions en retard", align: "right", cell: (v) => comp.get(v.id)?.lateActions ?? 0 },
+          { header: "Responsable", cell: (v) => profName(v.responsible_id) },
+          { header: "Superviseur", cell: (v) => profName(v.supervisor_id) },
         ]}
         card={(v) => ({
           title: v.registration_number,
+          badge: compBadge(v.id),
           fields: [
-            { label: "Type", value: v.vehicle_type ?? "—" },
-            { label: "Statut", value: v.status },
+            { label: "Prochaine échéance", value: formatDate(comp.get(v.id)?.nextDue ?? null) },
+            { label: "Responsable", value: profName(v.responsible_id) },
           ],
         })}
         actions={(v) => <ArchiveButton table="vehicles" id={v.id} archived={v.is_archived} />}

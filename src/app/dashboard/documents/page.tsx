@@ -1,5 +1,5 @@
 import { requireContext } from "@/lib/queries/auth";
-import { getDocuments } from "@/lib/queries/entities";
+import { getDocuments, getDocumentLinkMap } from "@/lib/queries/entities";
 import { PageHeader } from "@/components/app/page-header";
 import { AddPanel } from "@/components/app/add-panel";
 import { ListToolbar } from "@/components/app/list-toolbar";
@@ -30,6 +30,7 @@ export default async function DocumentsPage({
     page,
     pageSize: PAGE_SIZE,
   });
+  const links = await getDocumentLinkMap(company.id, rows);
 
   return (
     <div>
@@ -53,6 +54,7 @@ export default async function DocumentsPage({
         columns={[
           { header: "Titre", cell: (d) => <span className="font-medium">{d.title}</span> },
           { header: "Type", cell: (d) => d.document_type ?? "—" },
+          { header: "Entité liée", cell: (d) => links.get(d.id) ?? "—" },
           { header: "Expiration", cell: (d) => <span className="inline-flex items-center gap-2">{formatDate(d.expiration_date)}<StatusBadge status={statusFromDate(d.expiration_date)} /></span> },
           { header: "Ajouté le", cell: (d) => formatDate(d.created_at) },
         ]}
@@ -60,7 +62,7 @@ export default async function DocumentsPage({
           title: d.title,
           badge: <StatusBadge status={statusFromDate(d.expiration_date)} />,
           fields: [
-            { label: "Type", value: d.document_type ?? "—" },
+            { label: "Entité liée", value: links.get(d.id) ?? "—" },
             { label: "Expiration", value: formatDate(d.expiration_date) },
           ],
         })}

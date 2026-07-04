@@ -5,7 +5,9 @@ import { PageHeader } from "@/components/app/page-header";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { DetailGrid, DetailField } from "@/components/app/detail-field";
 import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { DocumentAiActions } from "@/components/documents/document-ai-actions";
 import { statusFromDate } from "@/lib/status";
 import { formatDate } from "@/lib/utils";
 
@@ -56,6 +58,15 @@ export default async function DocumentDetailPage({
         <DetailField label="Statut" value={document.status} />
         <DetailField label="Ajouté le" value={formatDate(document.created_at)} />
       </DetailGrid>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Actions sur le document</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DocumentAiActions />
+        </CardContent>
+      </Card>
     </div>
   );
 }

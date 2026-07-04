@@ -164,7 +164,7 @@ export function Sidebar({
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-sidebar-border bg-sidebar/90 px-4 py-3 text-sidebar-heading backdrop-blur md:hidden">
         <span className="flex items-center gap-2 text-sm font-semibold">
           <ShieldCheck size={18} weight="fill" className="text-accent" />
-          conformity
+          Conformity
         </span>
         <button aria-label="Menu" onClick={() => setOpen((v) => !v)} className="p-1">
           {open ? <X size={20} /> : <ListIcon size={20} />}
@@ -185,7 +185,7 @@ export function Sidebar({
           {!collapsed ? (
             <span className="flex items-center gap-2 px-2 text-base font-semibold tracking-tight text-sidebar-heading">
               <ShieldCheck size={22} weight="fill" className="text-accent" aria-hidden />
-              conformity
+              Conformity
             </span>
           ) : null}
           <button

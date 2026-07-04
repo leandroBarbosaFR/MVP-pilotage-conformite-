@@ -65,6 +65,7 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: null; count: n
   lt(col: string, val: unknown) { this.preds.push((r) => r[col] != null && (r[col] as never) < (val as never)); return this; }
   lte(col: string, val: unknown) { this.preds.push((r) => r[col] != null && (r[col] as never) <= (val as never)); return this; }
   is(col: string, val: unknown) { this.preds.push((r) => (val === null ? r[col] == null : r[col] === val)); return this; }
+  in(col: string, arr: unknown[]) { const set = new Set(arr); this.preds.push((r) => set.has(r[col])); return this; }
   not(col: string, op: string, val: unknown) {
     if (op === "is" && val === null) this.preds.push((r) => r[col] != null);
     return this;
@@ -92,21 +93,26 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: null; count: n
 
   private runWrite() {
     const w = this._write!;
+    const inserted: Row[] = [];
     if (w.type === "insert" || w.type === "upsert") {
       const items = Array.isArray(w.payload) ? w.payload : [w.payload];
       for (const item of items as Row[]) {
         if (w.type === "upsert" && w.onConflict) {
           const existing = this.rows.find((r) => r[w.onConflict!] === item[w.onConflict!]);
-          if (existing) { Object.assign(existing, item, { updated_at: new Date().toISOString() }); continue; }
+          if (existing) { Object.assign(existing, item, { updated_at: new Date().toISOString() }); inserted.push(existing); continue; }
         }
-        this.rows.push({
+        const row: Row = {
           id: (item.id as string) ?? `${this.table}-${Math.round(performance.now() * 1000)}-${this.rows.length}`,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           is_archived: false,
           ...item,
-        });
+        };
+        this.rows.push(row);
+        inserted.push(row);
       }
+      const data = this._single ? inserted[0] ?? null : inserted;
+      return { data, error: null, count: null };
     } else if (w.type === "update") {
       for (const r of this.matched()) Object.assign(r, w.payload, { updated_at: new Date().toISOString() });
     } else if (w.type === "delete") {

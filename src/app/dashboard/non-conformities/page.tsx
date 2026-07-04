@@ -1,19 +1,20 @@
 import { requireContext } from "@/lib/queries/auth";
-import { getNonConformities, getSites, getProfiles } from "@/lib/queries/entities";
+import { getNonConformities, getSites, getProfiles, getEntityNameMap, getActions } from "@/lib/queries/entities";
 import { createNonConformity } from "@/lib/actions/entities";
 import { PageHeader } from "@/components/app/page-header";
 import { AddPanel } from "@/components/app/add-panel";
 import { ListToolbar } from "@/components/app/list-toolbar";
 import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
+import { CreateCorrectiveActionButton } from "@/components/nc/create-corrective-action-button";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { ListView } from "@/components/app/list-view";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { NC_SOURCE_TYPES, NC_STATUS_LABELS, NC_STATUS_TONE } from "@/types/enums";
+import { NC_SOURCE_TYPES, NC_STATUS_LABELS, NC_STATUS_TONE, RELATED_ENTITY_LABELS } from "@/types/enums";
 import { PRIORITY_LABELS } from "@/lib/status";
 import { formatDate } from "@/lib/utils";
-import type { ComplianceStatus, Site, Profile } from "@/lib/types/database";
+import type { ComplianceStatus, Site, Profile, NonConformity } from "@/lib/types/database";
 
 const PAGE_SIZE = 20;
 
@@ -34,11 +35,27 @@ export default async function NonConformitiesPage({
   const page = Math.max(1, Number(sp.page ?? 1));
   const includeArchived = sp.archived === "1";
 
-  const [{ rows, count }, sites, profiles] = await Promise.all([
+  const [{ rows, count }, sites, profiles, entMap, actions] = await Promise.all([
     getNonConformities(company.id, { search: sp.q, status: sp.status, includeArchived, page, pageSize: PAGE_SIZE }),
     getSites(company.id, { pageSize: 500 }),
     getProfiles(company.id),
+    getEntityNameMap(company.id),
+    getActions(company.id, { pageSize: 500 }),
   ]);
+
+  const actTitle = new Map(actions.rows.map((a) => [a.id, a.title]));
+
+  const profName = (id: string | null) => {
+    if (!id) return "—";
+    const p = profiles.find((x) => x.id === id);
+    if (!p) return "—";
+    return [p.first_name, p.last_name].filter(Boolean).join(" ") || p.email || "—";
+  };
+
+  const entityLabel = (n: NonConformity) =>
+    n.related_entity_id
+      ? `${RELATED_ENTITY_LABELS[n.related_entity_type as keyof typeof RELATED_ENTITY_LABELS] ?? ""} ${entMap.get(n.related_entity_id) ?? "—"}`.trim()
+      : "—";
 
   return (
     <div>
@@ -67,20 +84,27 @@ export default async function NonConformitiesPage({
         empty="Aucune non-conformité."
         columns={[
           { header: "Titre", cell: (n) => <span className="font-medium">{n.title}</span> },
-          { header: "Source", cell: (n) => n.source_type ?? "—" },
-          { header: "Détectée le", cell: (n) => formatDate(n.detected_at) },
+          { header: "Entité liée", cell: (n) => entityLabel(n) },
           { header: "Gravité", cell: (n) => <StatusBadge status={SEV_TONE[n.severity] ?? "none"} label={PRIORITY_LABELS[n.severity] ?? n.severity} /> },
+          { header: "Échéance", cell: (n) => formatDate(n.due_date) },
+          { header: "Responsable", cell: (n) => profName(n.responsible_id) },
+          { header: "Action corrective", cell: (n) => n.corrective_action_id ? (actTitle.get(n.corrective_action_id) ?? "Oui") : "—" },
           { header: "Statut", cell: (n) => <StatusBadge status={(NC_STATUS_TONE[n.status] ?? "none") as ComplianceStatus} label={NC_STATUS_LABELS[n.status] ?? n.status} /> },
         ]}
         card={(n) => ({
           title: n.title,
           badge: <StatusBadge status={(NC_STATUS_TONE[n.status] ?? "none") as ComplianceStatus} label={NC_STATUS_LABELS[n.status] ?? n.status} />,
           fields: [
-            { label: "Gravité", value: PRIORITY_LABELS[n.severity] ?? n.severity },
-            { label: "Détectée le", value: formatDate(n.detected_at) },
+            { label: "Entité liée", value: entityLabel(n) },
+            { label: "Échéance", value: formatDate(n.due_date) },
           ],
         })}
-        actions={(n) => <ArchiveButton table="non_conformities" id={n.id} archived={n.is_archived} />}
+        actions={(n) => (
+          <>
+            {!n.corrective_action_id ? <CreateCorrectiveActionButton ncId={n.id} /> : null}
+            <ArchiveButton table="non_conformities" id={n.id} archived={n.is_archived} />
+          </>
+        )}
       />
 
       <Pagination basePath="/dashboard/non-conformities" page={page} count={count} pageSize={PAGE_SIZE} params={{ q: sp.q, status: sp.status, archived: sp.archived }} />

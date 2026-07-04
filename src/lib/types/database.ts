@@ -185,6 +185,8 @@ export interface Obligation extends ArchivableRow {
   related_entity_type: RelatedEntityType | null;
   related_entity_id: string | null;
   provider_id: string | null;
+  expected_document: string | null;
+  expected_proof: string | null;
   description: string | null;
   notes: string | null;
   due_date: string | null;
@@ -232,6 +234,8 @@ export interface ActionRow extends ArchivableRow {
   assigned_to: string | null;
   supervisor_id: string | null;
   obligation_id: string | null;
+  source: string | null;
+  expected_proof: string | null;
   comment: string | null;
   completed_at: string | null;
   completed_by: string | null;
@@ -346,6 +350,7 @@ export interface NonConformity extends ArchivableRow {
   related_entity_type: RelatedEntityType | null;
   related_entity_id: string | null;
   detected_at: string | null;
+  due_date: string | null;
   responsible_id: string | null;
   supervisor_id: string | null;
   status: NcStatus;

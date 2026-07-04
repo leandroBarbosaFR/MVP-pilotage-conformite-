@@ -200,24 +200,32 @@ export const documents: Row[] = DOC_TITLE.map((t, k) => {
 });
 
 // --- Actions -----------------------------------------------------------
-export const actions: Row[] = [
-  { title: "Renouveler habilitation électrique - 4 salariés", category: "RH", status: "TODO", priority: "CRITICAL", due: 0, assigned_to: "p-rh", supervisor_id: "p-qhse", obligation_id: "obl-11" },
-  { title: "Contrôle chariot élévateur CH-12", category: "Maintenance", status: "TODO", priority: "CRITICAL", due: 3, assigned_to: "p-maint", supervisor_id: "p-qhse", obligation_id: "obl-9" },
-  { title: "Ajouter rapport extincteurs atelier", category: "Maintenance", status: "PLANNED", priority: "HIGH", due: 15, assigned_to: "p-maint", supervisor_id: "p-qhse", obligation_id: "obl-13" },
-  { title: "Vérifier assurance véhicule AB-123-CD", category: "Parc", status: "TODO", priority: "HIGH", due: 10, assigned_to: "p-parc", supervisor_id: "p-expl", obligation_id: "obl-2" },
-  { title: "Planifier visite médecine du travail", category: "RH", status: "PLANNED", priority: "MEDIUM", due: 21, assigned_to: "p-rh", supervisor_id: "p-qhse", obligation_id: "obl-5" },
+type ActionSeed = {
+  title: string; category: string; status: string; priority: string; due: number;
+  assigned_to: string; supervisor_id: string; obligation_id: string;
+  ret?: string; rid?: string; source?: string; proof?: string;
+};
+const ACTION_SEED: ActionSeed[] = [
+  { title: "Renouveler habilitation électrique - 4 salariés", category: "RH", status: "TODO", priority: "CRITICAL", due: 0, assigned_to: "p-rh", supervisor_id: "p-qhse", obligation_id: "obl-11", ret: "EMPLOYEE", rid: "emp-2", source: "Habilitation expirée", proof: "Certificat d'habilitation" },
+  { title: "Contrôle chariot élévateur CH-12", category: "Maintenance", status: "TODO", priority: "CRITICAL", due: 3, assigned_to: "p-maint", supervisor_id: "p-qhse", obligation_id: "obl-9", ret: "EQUIPMENT", rid: "eqp-2", source: "Contrôle levage à échéance", proof: "Rapport VGP" },
+  { title: "Ajouter rapport extincteurs atelier", category: "Maintenance", status: "PLANNED", priority: "HIGH", due: 15, assigned_to: "p-maint", supervisor_id: "p-qhse", obligation_id: "obl-13", ret: "SITE", rid: "site-1", source: "Contrôle extincteurs", proof: "Rapport de contrôle" },
+  { title: "Vérifier assurance véhicule AB-123-CD", category: "Parc", status: "TODO", priority: "HIGH", due: 10, assigned_to: "p-parc", supervisor_id: "p-expl", obligation_id: "obl-2", ret: "VEHICLE", rid: "veh-1", source: "Assurance bientôt expirée", proof: "Attestation d'assurance" },
+  { title: "Planifier visite médecine du travail", category: "RH", status: "PLANNED", priority: "MEDIUM", due: 21, assigned_to: "p-rh", supervisor_id: "p-qhse", obligation_id: "obl-5", ret: "EMPLOYEE", rid: "emp-4", source: "Visite médicale à échéance", proof: "Avis d'aptitude" },
   { title: "Contrôler un extincteur", category: "Maintenance", status: "IN_PROGRESS", priority: "MEDIUM", due: 5, assigned_to: "p-maint", supervisor_id: "p-qhse", obligation_id: "obl-4" },
-  { title: "Relancer le prestataire de contrôle", category: "QHSE", status: "LATE", priority: "HIGH", due: -12, assigned_to: "p-qhse", supervisor_id: "p-admin", obligation_id: "obl-1" },
+  { title: "Relancer le prestataire de contrôle", category: "QHSE", status: "LATE", priority: "HIGH", due: -12, assigned_to: "p-qhse", supervisor_id: "p-admin", obligation_id: "obl-1", ret: "VEHICLE", rid: "veh-1", source: "Contrôle technique dépassé", proof: "PV de contrôle" },
   { title: "Mettre à jour la carte conducteur", category: "RH", status: "TODO", priority: "MEDIUM", due: -2, assigned_to: "p-rh", supervisor_id: "p-qhse", obligation_id: "obl-14" },
   { title: "Archiver un ancien PV", category: "QHSE", status: "DONE", priority: "LOW", due: -20, assigned_to: "p-qhse", supervisor_id: "p-admin", obligation_id: "obl-10" },
-].map((a, k) => ({
+];
+export const actions: Row[] = ACTION_SEED.map((a, k) => ({
   id: `act-${k + 1}`,
   company_id: C,
   title: a.title,
   description: "Tâche à réaliser pour rester conforme.",
   category: a.category,
-  related_entity_type: null,
-  related_entity_id: null,
+  related_entity_type: a.ret ?? null,
+  related_entity_id: a.rid ?? null,
+  source: a.source ?? null,
+  expected_proof: a.proof ?? null,
   status: a.status,
   priority: a.priority,
   due_date: iso(a.due),
@@ -312,21 +320,30 @@ export const audits: Row[] = [
   auditor_name: "Cabinet QHSE Conseil", provider_id: null,
   planned_date: iso(a.planned), completed_date: a.completed != null ? iso(a.completed) : null,
   status: a.status, result: a.result, score: a.score,
-  responsible_id: "p-qhse", supervisor_id: "p-admin", report_document_id: null, notes: null, ...archivable,
+  responsible_id: "p-qhse", supervisor_id: "p-admin",
+  report_document_id: a.id === "aud-1" ? "doc-8" : null, notes: null, ...archivable,
 }));
 
 // --- Non-conformités ---------------------------------------------------
-export const non_conformities: Row[] = [
-  { id: "nc-1", title: "Registre sécurité non mis à jour", severity: "MEDIUM", source_type: "Audit", site_id: "site-1", status: "OPEN", detected: -10 },
-  { id: "nc-2", title: "Contrôle gaz expiré", severity: "HIGH", source_type: "Contrôle", site_id: "site-3", status: "IN_PROGRESS", detected: -25 },
-  { id: "nc-3", title: "Rapport extincteurs manquant", severity: "MEDIUM", source_type: "Document", site_id: "site-1", status: "OPEN", detected: -6 },
-  { id: "nc-4", title: "Pneus véhicule AB-123-CD à contrôler", severity: "HIGH", source_type: "Véhicule", site_id: null, status: "OPEN", detected: -3 },
-  { id: "nc-5", title: "Action corrective audit client non terminée", severity: "CRITICAL", source_type: "Audit", site_id: "site-1", status: "IN_PROGRESS", detected: -30 },
-].map((n) => ({
+type NcSeed = {
+  id: string; title: string; severity: string; source_type: string; source_id?: string | null;
+  site_id: string | null; status: string; detected: number; due?: number;
+  ret?: string; rid?: string; corrective?: string;
+};
+const NC_SEED: NcSeed[] = [
+  { id: "nc-1", title: "Registre sécurité non mis à jour", severity: "MEDIUM", source_type: "Audit", source_id: "aud-1", site_id: "site-1", status: "OPEN", detected: -10, due: 20, ret: "SITE", rid: "site-1" },
+  { id: "nc-2", title: "Contrôle gaz expiré", severity: "HIGH", source_type: "Contrôle", site_id: "site-3", status: "IN_PROGRESS", detected: -25, due: 5, ret: "SITE", rid: "site-3", corrective: "act-6" },
+  { id: "nc-3", title: "Rapport extincteurs manquant", severity: "MEDIUM", source_type: "Document", site_id: "site-1", status: "OPEN", detected: -6, due: 15, ret: "SITE", rid: "site-1", corrective: "act-3" },
+  { id: "nc-4", title: "Pneus véhicule AB-123-CD à contrôler", severity: "HIGH", source_type: "Véhicule", site_id: null, status: "OPEN", detected: -3, due: 7, ret: "VEHICLE", rid: "veh-1" },
+  { id: "nc-5", title: "Action corrective audit client non terminée", severity: "CRITICAL", source_type: "Audit", source_id: "aud-2", site_id: "site-1", status: "IN_PROGRESS", detected: -30, due: -2, ret: "SITE", rid: "site-1", corrective: "act-7" },
+];
+export const non_conformities: Row[] = NC_SEED.map((n) => ({
   id: n.id, company_id: C, title: n.title, description: "Écart constaté à traiter.", severity: n.severity,
-  source_type: n.source_type, source_id: null, site_id: n.site_id, related_entity_type: null, related_entity_id: null,
-  detected_at: iso(n.detected), responsible_id: "p-qhse", supervisor_id: "p-admin", status: n.status,
-  corrective_action_id: null, document_id: null, ...archivable,
+  source_type: n.source_type, source_id: n.source_id ?? null, site_id: n.site_id,
+  related_entity_type: n.ret ?? null, related_entity_id: n.rid ?? null,
+  detected_at: iso(n.detected), due_date: n.due != null ? iso(n.due) : null,
+  responsible_id: "p-qhse", supervisor_id: "p-admin", status: n.status,
+  corrective_action_id: n.corrective ?? null, document_id: null, ...archivable,
 }));
 
 // Registre des tables pour le client mock

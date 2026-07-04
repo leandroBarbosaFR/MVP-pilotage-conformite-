@@ -200,6 +200,232 @@ export async function getNonConformities(companyId: string, filters: ListFilters
   return { rows: (data as NonConformity[]) ?? [], count: count ?? 0 };
 }
 
+export interface EntityCompliance {
+  status: "ok" | "warn" | "danger" | "none";
+  nextDue: string | null;
+  missingDocs: number;
+  lateActions: number;
+  obligations: number;
+}
+
+const TONE_RANK: Record<string, number> = { none: 0, ok: 1, warn: 2, danger: 3 };
+
+/**
+ * Résumé de conformité par entité (agrégé depuis ses obligations liées) :
+ * pire statut, prochaine échéance, documents manquants, actions en retard.
+ * `relatedTypes` = valeurs related_entity_type (ex: ['EMPLOYEE','DRIVER']).
+ */
+export async function getEntityComplianceMap(
+  companyId: string,
+  relatedTypes: string[]
+): Promise<Map<string, EntityCompliance>> {
+  const supabase = await createClient();
+  const today = new Date().toISOString().slice(0, 10);
+  const in30 = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
+
+  const { data: oblData } = await supabase
+    .from("obligations")
+    .select("id, related_entity_id, due_date")
+    .eq("company_id", companyId)
+    .eq("is_archived", false)
+    .in("related_entity_type", relatedTypes)
+    .not("related_entity_id", "is", null);
+  const obls = (oblData as { id: string; related_entity_id: string; due_date: string | null }[]) ?? [];
+
+  const map = new Map<string, EntityCompliance>();
+  if (obls.length === 0) return map;
+
+  const oblIds = obls.map((o) => o.id);
+
+  const withDoc = new Set<string>();
+  const { data: docData } = await supabase
+    .from("documents")
+    .select("obligation_id")
+    .eq("company_id", companyId)
+    .eq("is_archived", false)
+    .in("obligation_id", oblIds);
+  for (const d of docData ?? []) if (d.obligation_id) withDoc.add(d.obligation_id as string);
+
+  const lateByObl = new Map<string, number>();
+  const { data: actData } = await supabase
+    .from("actions")
+    .select("obligation_id, status, due_date")
+    .eq("company_id", companyId)
+    .eq("is_archived", false)
+    .in("obligation_id", oblIds)
+    .neq("status", "DONE")
+    .lt("due_date", today);
+  for (const a of actData ?? [])
+    if (a.obligation_id) lateByObl.set(a.obligation_id as string, (lateByObl.get(a.obligation_id as string) ?? 0) + 1);
+
+  for (const o of obls) {
+    const eid = o.related_entity_id;
+    const cur = map.get(eid) ?? { status: "none", nextDue: null, missingDocs: 0, lateActions: 0, obligations: 0 };
+    const bucket = !o.due_date ? "none" : o.due_date < today ? "danger" : o.due_date <= in30 ? "warn" : "ok";
+    if (TONE_RANK[bucket] > TONE_RANK[cur.status]) cur.status = bucket as EntityCompliance["status"];
+    if (o.due_date && (!cur.nextDue || o.due_date < cur.nextDue)) cur.nextDue = o.due_date;
+    if (!withDoc.has(o.id)) cur.missingDocs += 1;
+    cur.lateActions += lateByObl.get(o.id) ?? 0;
+    cur.obligations += 1;
+    map.set(eid, cur);
+  }
+  return map;
+}
+
+/**
+ * Résout, pour chaque document, l'entité à laquelle il est rattaché
+ * (contrat, véhicule, salarié, équipement, EPI, ou via son obligation → site…).
+ * Retourne Map<documentId, "Véhicule AB-123-CD">.
+ */
+export async function getDocumentLinkMap(
+  companyId: string,
+  docs: DocumentRow[]
+): Promise<Map<string, string>> {
+  const supabase = await createClient();
+  const [veh, emp, eqp, epis, sites, obl, ctr] = await Promise.all([
+    supabase.from("vehicles").select("id, registration_number").eq("company_id", companyId),
+    supabase.from("employees").select("id, first_name, last_name").eq("company_id", companyId),
+    supabase.from("equipments").select("id, name").eq("company_id", companyId),
+    supabase.from("epi").select("id, epi_type").eq("company_id", companyId),
+    supabase.from("sites").select("id, name").eq("company_id", companyId),
+    supabase.from("obligations").select("id, title, related_entity_type, related_entity_id").eq("company_id", companyId),
+    supabase.from("contracts").select("id, title, document_id").eq("company_id", companyId).not("document_id", "is", null),
+  ]);
+
+  const names = new Map<string, string>();
+  for (const v of veh.data ?? []) names.set(v.id as string, v.registration_number as string);
+  for (const e of emp.data ?? []) names.set(e.id as string, [e.first_name, e.last_name].filter(Boolean).join(" "));
+  for (const q of eqp.data ?? []) names.set(q.id as string, q.name as string);
+  for (const e of epis.data ?? []) names.set(e.id as string, e.epi_type as string);
+  for (const s of sites.data ?? []) names.set(s.id as string, s.name as string);
+
+  const oblById = new Map<string, { title: string; ret: string | null; rid: string | null }>();
+  for (const o of obl.data ?? [])
+    oblById.set(o.id as string, {
+      title: o.title as string,
+      ret: (o.related_entity_type as string) ?? null,
+      rid: (o.related_entity_id as string) ?? null,
+    });
+
+  const contractByDoc = new Map<string, string>();
+  for (const c of ctr.data ?? [])
+    if (c.document_id) contractByDoc.set(c.document_id as string, c.title as string);
+
+  const PREFIX: Record<string, string> = {
+    VEHICLE: "Véhicule", EMPLOYEE: "Salarié", DRIVER: "Conducteur",
+    EQUIPMENT: "Équipement", SITE: "Site", PPE: "EPI",
+  };
+
+  const result = new Map<string, string>();
+  for (const d of docs) {
+    let label = "—";
+    if (contractByDoc.has(d.id)) label = `Contrat ${contractByDoc.get(d.id)}`;
+    else if (d.vehicle_id) label = `Véhicule ${names.get(d.vehicle_id) ?? ""}`.trim();
+    else if (d.employee_id) label = `Salarié ${names.get(d.employee_id) ?? ""}`.trim();
+    else if (d.equipment_id) label = `Équipement ${names.get(d.equipment_id) ?? ""}`.trim();
+    else if (d.epi_id) label = `EPI ${names.get(d.epi_id) ?? ""}`.trim();
+    else if (d.obligation_id) {
+      const o = oblById.get(d.obligation_id);
+      if (o?.rid && names.has(o.rid)) label = `${PREFIX[o.ret ?? ""] ?? "Élément"} ${names.get(o.rid)}`;
+      else if (o) label = `Obligation : ${o.title}`;
+    }
+    result.set(d.id, label);
+  }
+  return result;
+}
+
+/** id -> nom lisible pour véhicules / salariés / équipements / sites / EPI. */
+export async function getEntityNameMap(companyId: string): Promise<Map<string, string>> {
+  const supabase = await createClient();
+  const [veh, emp, eqp, sites, epis] = await Promise.all([
+    supabase.from("vehicles").select("id, registration_number").eq("company_id", companyId),
+    supabase.from("employees").select("id, first_name, last_name").eq("company_id", companyId),
+    supabase.from("equipments").select("id, name").eq("company_id", companyId),
+    supabase.from("sites").select("id, name").eq("company_id", companyId),
+    supabase.from("epi").select("id, epi_type").eq("company_id", companyId),
+  ]);
+  const m = new Map<string, string>();
+  for (const v of veh.data ?? []) m.set(v.id as string, v.registration_number as string);
+  for (const e of emp.data ?? []) m.set(e.id as string, [e.first_name, e.last_name].filter(Boolean).join(" "));
+  for (const q of eqp.data ?? []) m.set(q.id as string, q.name as string);
+  for (const s of sites.data ?? []) m.set(s.id as string, s.name as string);
+  for (const e of epis.data ?? []) m.set(e.id as string, e.epi_type as string);
+  return m;
+}
+
+export interface ArchivedItem {
+  table: string;
+  type: string;
+  id: string;
+  label: string;
+  archived_at: string | null;
+  archived_by: string | null;
+}
+
+const ARCHIVE_TABLES: { table: string; type: string; label: (r: Record<string, unknown>) => string }[] = [
+  { table: "employees", type: "Salarié", label: (r) => [r.first_name, r.last_name].filter(Boolean).join(" ") },
+  { table: "vehicles", type: "Véhicule", label: (r) => (r.registration_number as string) ?? "—" },
+  { table: "equipments", type: "Équipement", label: (r) => (r.name as string) ?? "—" },
+  { table: "epi", type: "EPI", label: (r) => (r.epi_type as string) ?? "—" },
+  { table: "sites", type: "Site", label: (r) => (r.name as string) ?? "—" },
+  { table: "obligations", type: "Obligation", label: (r) => (r.title as string) ?? "—" },
+  { table: "documents", type: "Document", label: (r) => (r.title as string) ?? "—" },
+  { table: "actions", type: "Action", label: (r) => (r.title as string) ?? "—" },
+  { table: "providers", type: "Prestataire", label: (r) => (r.name as string) ?? "—" },
+  { table: "contracts", type: "Contrat", label: (r) => (r.title as string) ?? "—" },
+  { table: "audits", type: "Audit", label: (r) => (r.title as string) ?? "—" },
+  { table: "non_conformities", type: "Non-conformité", label: (r) => (r.title as string) ?? "—" },
+];
+
+/** Tous les éléments archivés du tenant, tous modules confondus. */
+export async function getArchivedItems(companyId: string): Promise<ArchivedItem[]> {
+  const supabase = await createClient();
+  const namesByProfile = new Map<string, string>();
+  const { data: profiles } = await supabase.from("profiles").select("id, first_name, last_name, email").eq("company_id", companyId);
+  for (const p of profiles ?? [])
+    namesByProfile.set(p.id as string, [p.first_name, p.last_name].filter(Boolean).join(" ") || (p.email as string) || "—");
+
+  const results = await Promise.all(
+    ARCHIVE_TABLES.map(async (t) => {
+      const { data } = await supabase.from(t.table).select("*").eq("company_id", companyId).eq("is_archived", true);
+      return (data ?? []).map((r) => ({
+        table: t.table,
+        type: t.type,
+        id: r.id as string,
+        label: t.label(r),
+        archived_at: (r.archived_at as string) ?? null,
+        archived_by: r.archived_by ? namesByProfile.get(r.archived_by as string) ?? null : null,
+      }));
+    })
+  );
+  return results.flat().sort((a, b) => (b.archived_at ?? "").localeCompare(a.archived_at ?? ""));
+}
+
+/** Par audit : nombre de non-conformités générées + actions ouvertes. */
+export async function getAuditStatsMap(
+  companyId: string,
+  auditIds: string[]
+): Promise<Map<string, { ncCount: number; openActions: number }>> {
+  const map = new Map<string, { ncCount: number; openActions: number }>();
+  if (auditIds.length === 0) return map;
+  const supabase = await createClient();
+  const [ncRes, actRes] = await Promise.all([
+    supabase.from("non_conformities").select("source_id").eq("company_id", companyId).eq("source_type", "Audit").in("source_id", auditIds),
+    supabase.from("actions").select("related_entity_id, status").eq("company_id", companyId).eq("related_entity_type", "AUDIT").in("related_entity_id", auditIds),
+  ]);
+  for (const id of auditIds) map.set(id, { ncCount: 0, openActions: 0 });
+  for (const n of ncRes.data ?? []) {
+    const e = map.get(n.source_id as string);
+    if (e) e.ncCount += 1;
+  }
+  for (const a of actRes.data ?? []) {
+    if (a.status === "DONE" || a.status === "CANCELLED" || a.status === "ARCHIVED") continue;
+    const e = map.get(a.related_entity_id as string);
+    if (e) e.openActions += 1;
+  }
+  return map;
+}
+
 export async function getSiteDetail(id: string) {
   const supabase = await createClient();
   const [site, obligations, contracts, audits] = await Promise.all([

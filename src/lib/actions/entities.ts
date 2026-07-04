@@ -51,6 +51,9 @@ export async function createObligation(formData: FormData) {
     module: s(formData.get("module")) ?? "REGULATORY_CONTROLS",
     related_entity_type: s(formData.get("related_entity_type")),
     related_entity_id: s(formData.get("related_entity_id")),
+    provider_id: s(formData.get("provider_id")),
+    expected_document: s(formData.get("expected_document")),
+    expected_proof: s(formData.get("expected_proof")),
     description: s(formData.get("description")),
     notes: s(formData.get("notes")),
     due_date: s(formData.get("due_date")),
@@ -82,9 +85,49 @@ export async function createAction(formData: FormData) {
     assigned_to: s(formData.get("assigned_to")),
     supervisor_id: s(formData.get("supervisor_id")),
     obligation_id: s(formData.get("obligation_id")),
+    related_entity_type: s(formData.get("related_entity_type")),
+    related_entity_id: s(formData.get("related_entity_id")),
+    source: s(formData.get("source")),
+    expected_proof: s(formData.get("expected_proof")),
     comment: s(formData.get("comment")),
     created_by: profile.id,
   });
+  revalidatePath("/dashboard/actions");
+  revalidatePath("/dashboard");
+}
+
+/** Crée une action corrective rattachée à une non-conformité. */
+export async function createCorrectiveAction(ncId: string) {
+  const { company, profile } = await requireContext();
+  const supabase = await createClient();
+  const { data: nc } = await supabase.from("non_conformities").select("*").eq("id", ncId).single();
+  if (!nc) return;
+  const { data: created } = await supabase
+    .from("actions")
+    .insert({
+      company_id: company.id,
+      title: `Corriger : ${nc.title}`,
+      description: nc.description,
+      category: "Non-conformité",
+      related_entity_type: nc.related_entity_type,
+      related_entity_id: nc.related_entity_id,
+      source: `Non-conformité (${nc.source_type ?? "—"})`,
+      status: "TODO",
+      priority: nc.severity ?? "MEDIUM",
+      due_date: nc.due_date,
+      assigned_to: nc.responsible_id,
+      supervisor_id: nc.supervisor_id,
+      created_by: profile.id,
+    })
+    .select("id")
+    .single();
+  if (created?.id) {
+    await supabase
+      .from("non_conformities")
+      .update({ corrective_action_id: created.id, status: "IN_PROGRESS" })
+      .eq("id", ncId);
+  }
+  revalidatePath("/dashboard/non-conformities");
   revalidatePath("/dashboard/actions");
   revalidatePath("/dashboard");
 }
