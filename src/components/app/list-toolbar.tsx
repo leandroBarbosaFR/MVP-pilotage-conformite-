@@ -1,8 +1,14 @@
+"use client";
+
+import { useRef } from "react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-/** Barre de recherche + filtres pilotée par l'URL (GET, filtres côté serveur). */
+/**
+ * Barre de recherche + filtres pilotée par l'URL (GET, filtres côté serveur).
+ * Filtrage automatique : les selects et la case "archivés" appliquent
+ * immédiatement ; la recherche s'applique après une courte pause de frappe.
+ */
 export function ListToolbar({
   basePath,
   search,
@@ -14,10 +20,33 @@ export function ListToolbar({
   includeArchived?: boolean;
   children?: React.ReactNode;
 }) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const submit = () => formRef.current?.requestSubmit();
+
+  // Selects + cases à cocher : application immédiate
+  const onChange = (e: React.ChangeEvent<HTMLFormElement>) => {
+    const t = e.target as HTMLElement;
+    if (t.tagName === "SELECT" || (t as HTMLInputElement).type === "checkbox") submit();
+  };
+
+  // Recherche : application différée (anti-rebond)
+  const onSearchInput = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(submit, 450);
+  };
+
   return (
-    <form method="get" action={basePath} className="mb-4 flex flex-wrap items-center gap-2">
+    <form
+      ref={formRef}
+      method="get"
+      action={basePath}
+      onChange={onChange}
+      className="mb-4 flex flex-wrap items-center gap-2"
+    >
       <div className="w-full sm:w-64">
-        <Input name="q" defaultValue={search ?? ""} placeholder="Rechercher…" />
+        <Input name="q" defaultValue={search ?? ""} placeholder="Rechercher…" onInput={onSearchInput} />
       </div>
       {children}
       <label
@@ -37,9 +66,12 @@ export function ListToolbar({
         />
         Voir les archivés
       </label>
-      <Button type="submit" size="sm" className="h-9 rounded-md px-4">
-        Filtrer
-      </Button>
+      {/* Repli sans JavaScript */}
+      <noscript>
+        <button type="submit" className="h-9 rounded-md border border-border bg-surface px-4 text-sm">
+          Filtrer
+        </button>
+      </noscript>
     </form>
   );
 }

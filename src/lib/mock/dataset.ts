@@ -140,7 +140,7 @@ const OBL_DEFS: {
   { title: "Audit interne QHSE", category: "audit", module: "REGULATORY_CONTROLS", ret: null, ent: null, due: 200 },
   { title: "Habilitation électrique", category: "formation", module: "PERSONNEL", ret: "EMPLOYEE", ent: "emp-2", due: -6 },
   { title: "Formation ADR", category: "formation", module: "PERSONNEL", ret: "EMPLOYEE", ent: "emp-6", due: 40 },
-  { title: "Contrôle extincteurs site", category: "site", module: "SITES", ret: "SITE", ent: null, due: 8 },
+  { title: "Contrôle extincteurs site", category: "site", module: "SITES", ret: "SITE", ent: "site-1", due: 8 },
   { title: "Carte conducteur", category: "conducteur", module: "PERSONNEL", ret: "DRIVER", ent: "emp-8", due: 75 },
 ];
 
@@ -268,6 +268,67 @@ export const imports: Row[] = [
   { id: "imp-2", company_id: C, file_name: "salaries.csv", file_url: null, import_type: "employees", status: "traite", total_rows: 8, imported_rows: 7, failed_rows: 1, error_log: null, uploaded_by: "p-admin", created_at: NOW },
 ];
 
+// --- Sites et locaux ---------------------------------------------------
+export const sites: Row[] = [
+  { id: "site-1", company_id: C, name: "Entrepôt Marseille", site_type: "Entrepôt", address: "Zone logistique Sud", city: "Marseille", postal_code: "13011", country: "France", surface_area: 4200, activity_type: "Logistique", manager_id: "p-expl", supervisor_id: "p-qhse", status: "actif", notes: null, ...archivable },
+  { id: "site-2", company_id: C, name: "Bureau Lyon", site_type: "Bureau", address: "12 rue de la Part-Dieu", city: "Lyon", postal_code: "69003", country: "France", surface_area: 650, activity_type: "Administratif", manager_id: "p-admin", supervisor_id: "p-qhse", status: "actif", notes: null, ...archivable },
+  { id: "site-3", company_id: C, name: "Atelier maintenance", site_type: "Atelier", address: "8 avenue des Ateliers", city: "Vénissieux", postal_code: "69200", country: "France", surface_area: 1800, activity_type: "Maintenance", manager_id: "p-maint", supervisor_id: "p-qhse", status: "actif", notes: null, ...archivable },
+];
+
+// --- Prestataires ------------------------------------------------------
+export const providers: Row[] = [
+  { id: "prov-1", name: "SécuriFeu Contrôles", provider_type: "Maintenance extincteurs", contact_name: "M. Fabre", email: "contact@securifeu.fr", phone: "04 91 00 00 01", city: "Marseille" },
+  { id: "prov-2", name: "ElecCheck Pro", provider_type: "Maintenance électrique", contact_name: "Mme Roy", email: "contact@eleccheck.fr", phone: "04 72 00 00 02", city: "Lyon" },
+  { id: "prov-3", name: "Garage Transport Services", provider_type: "Maintenance véhicules", contact_name: "M. Léon", email: "contact@gts.fr", phone: "04 72 00 00 03", city: "Vénissieux" },
+  { id: "prov-4", name: "Médecine du Travail Régionale", provider_type: "Médecine du travail", contact_name: "Dr. Meyer", email: "contact@mtr.fr", phone: "04 78 00 00 04", city: "Lyon" },
+  { id: "prov-5", name: "Formation Sécurité Plus", provider_type: "Organisme de formation", contact_name: "Mme Aziz", email: "contact@fsp.fr", phone: "04 91 00 00 05", city: "Marseille" },
+  { id: "prov-6", name: "Assurance Pro Entreprise", provider_type: "Assurance", contact_name: "M. Blanc", email: "contact@ape.fr", phone: "01 40 00 00 06", city: "Paris" },
+].map((p) => ({ ...p, company_id: C, address: null, country: "France", notes: null, is_active: true, ...archivable }));
+
+// --- Contrats ----------------------------------------------------------
+export const contracts: Row[] = [
+  { id: "ctr-1", title: "Contrat maintenance extincteurs", contract_type: "Maintenance extincteurs", provider_id: "prov-1", site_id: "site-1", status: "ACTIVE", renewal: 45 },
+  { id: "ctr-2", title: "Contrat alarme incendie", contract_type: "Maintenance alarme", provider_id: "prov-1", site_id: "site-1", status: "TO_RENEW", renewal: 20 },
+  { id: "ctr-3", title: "Assurance multirisque locaux", contract_type: "Assurance multirisque", provider_id: "prov-6", site_id: "site-2", status: "ACTIVE", renewal: 90 },
+  { id: "ctr-4", title: "Contrat entretien véhicules", contract_type: "Maintenance véhicules", provider_id: "prov-3", site_id: "site-3", status: "ACTIVE", renewal: 130 },
+  { id: "ctr-5", title: "Contrat médecine du travail", contract_type: "Médecine du travail", provider_id: "prov-4", site_id: "site-2", status: "TO_RENEW", renewal: 12 },
+  { id: "ctr-6", title: "Contrat maintenance électrique", contract_type: "Maintenance électrique", provider_id: "prov-2", site_id: "site-3", status: "EXPIRED", renewal: -8 },
+].map((c) => ({
+  id: c.id, company_id: C, title: c.title, contract_type: c.contract_type, provider_id: c.provider_id,
+  site_id: c.site_id, related_entity_type: null, related_entity_id: null,
+  start_date: iso(-365), end_date: iso(c.renewal), renewal_date: iso(c.renewal),
+  notice_period_days: 30, amount: 4800, currency: "EUR",
+  responsible_id: "p-qhse", supervisor_id: "p-admin", status: c.status, document_id: null, notes: null, ...archivable,
+}));
+
+// --- Audits & inspections ---------------------------------------------
+export const audits: Row[] = [
+  { id: "aud-1", title: "Audit sécurité semestriel", audit_type: "Audit sécurité", site_id: "site-1", status: "DONE", result: "MINOR_NC", planned: -20, completed: -18, score: 82 },
+  { id: "aud-2", title: "Audit client logistique", audit_type: "Audit client", site_id: "site-1", status: "IN_PROGRESS", result: null, planned: 5, completed: null, score: null },
+  { id: "aud-3", title: "Inspection interne entrepôt", audit_type: "Audit interne", site_id: "site-1", status: "PLANNED", result: null, planned: 30, completed: null, score: null },
+  { id: "aud-4", title: "Visite sécurité atelier", audit_type: "Visite sécurité", site_id: "site-3", status: "LATE", result: null, planned: -5, completed: null, score: null },
+].map((a) => ({
+  id: a.id, company_id: C, title: a.title, audit_type: a.audit_type, site_id: a.site_id,
+  auditor_name: "Cabinet QHSE Conseil", provider_id: null,
+  planned_date: iso(a.planned), completed_date: a.completed != null ? iso(a.completed) : null,
+  status: a.status, result: a.result, score: a.score,
+  responsible_id: "p-qhse", supervisor_id: "p-admin", report_document_id: null, notes: null, ...archivable,
+}));
+
+// --- Non-conformités ---------------------------------------------------
+export const non_conformities: Row[] = [
+  { id: "nc-1", title: "Registre sécurité non mis à jour", severity: "MEDIUM", source_type: "Audit", site_id: "site-1", status: "OPEN", detected: -10 },
+  { id: "nc-2", title: "Contrôle gaz expiré", severity: "HIGH", source_type: "Contrôle", site_id: "site-3", status: "IN_PROGRESS", detected: -25 },
+  { id: "nc-3", title: "Rapport extincteurs manquant", severity: "MEDIUM", source_type: "Document", site_id: "site-1", status: "OPEN", detected: -6 },
+  { id: "nc-4", title: "Pneus véhicule AB-123-CD à contrôler", severity: "HIGH", source_type: "Véhicule", site_id: null, status: "OPEN", detected: -3 },
+  { id: "nc-5", title: "Action corrective audit client non terminée", severity: "CRITICAL", source_type: "Audit", site_id: "site-1", status: "IN_PROGRESS", detected: -30 },
+].map((n) => ({
+  id: n.id, company_id: C, title: n.title, description: "Écart constaté à traiter.", severity: n.severity,
+  source_type: n.source_type, source_id: null, site_id: n.site_id, related_entity_type: null, related_entity_id: null,
+  detected_at: iso(n.detected), responsible_id: "p-qhse", supervisor_id: "p-admin", status: n.status,
+  corrective_action_id: null, document_id: null, ...archivable,
+}));
+
 // Registre des tables pour le client mock
 export const TABLES: Record<string, Row[]> = {
   companies: [company],
@@ -282,6 +343,11 @@ export const TABLES: Record<string, Row[]> = {
   notifications,
   notification_settings,
   imports,
+  sites,
+  providers,
+  contracts,
+  audits,
+  non_conformities,
   audit_logs: [],
   pilot_leads: [],
 };

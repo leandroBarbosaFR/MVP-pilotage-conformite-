@@ -12,6 +12,11 @@ const ARCHIVABLE = new Set([
   "obligations",
   "documents",
   "actions",
+  "sites",
+  "providers",
+  "contracts",
+  "audits",
+  "non_conformities",
 ]);
 
 function s(v: FormDataEntryValue | null): string | null {
@@ -202,6 +207,117 @@ export async function createDocument(input: {
     uploaded_by: profile.id,
   });
   revalidatePath("/dashboard/documents");
+  revalidatePath("/dashboard");
+}
+
+// --- Modules métier (Prompt 2) ----------------------------------------
+export async function createSite(formData: FormData) {
+  const { company } = await requireContext();
+  const supabase = await createClient();
+  const surface = s(formData.get("surface_area"));
+  await supabase.from("sites").insert({
+    company_id: company.id,
+    name: s(formData.get("name")) ?? "Sans nom",
+    site_type: s(formData.get("site_type")),
+    address: s(formData.get("address")),
+    city: s(formData.get("city")),
+    postal_code: s(formData.get("postal_code")),
+    country: s(formData.get("country")),
+    surface_area: surface ? Number(surface) : null,
+    activity_type: s(formData.get("activity_type")),
+    manager_id: s(formData.get("manager_id")),
+    supervisor_id: s(formData.get("supervisor_id")),
+    status: s(formData.get("status")) ?? "actif",
+    notes: s(formData.get("notes")),
+  });
+  revalidatePath("/dashboard/sites");
+  revalidatePath("/dashboard");
+}
+
+export async function createProvider(formData: FormData) {
+  const { company } = await requireContext();
+  const supabase = await createClient();
+  await supabase.from("providers").insert({
+    company_id: company.id,
+    name: s(formData.get("name")) ?? "Sans nom",
+    provider_type: s(formData.get("provider_type")),
+    contact_name: s(formData.get("contact_name")),
+    email: s(formData.get("email")),
+    phone: s(formData.get("phone")),
+    address: s(formData.get("address")),
+    city: s(formData.get("city")),
+    country: s(formData.get("country")),
+    notes: s(formData.get("notes")),
+  });
+  revalidatePath("/dashboard/providers");
+}
+
+export async function createContract(formData: FormData) {
+  const { company } = await requireContext();
+  const supabase = await createClient();
+  const days = s(formData.get("notice_period_days"));
+  const amount = s(formData.get("amount"));
+  await supabase.from("contracts").insert({
+    company_id: company.id,
+    title: s(formData.get("title")) ?? "Sans titre",
+    contract_type: s(formData.get("contract_type")),
+    provider_id: s(formData.get("provider_id")),
+    site_id: s(formData.get("site_id")),
+    start_date: s(formData.get("start_date")),
+    end_date: s(formData.get("end_date")),
+    renewal_date: s(formData.get("renewal_date")),
+    notice_period_days: days ? Number(days) : null,
+    amount: amount ? Number(amount) : null,
+    currency: s(formData.get("currency")) ?? "EUR",
+    responsible_id: s(formData.get("responsible_id")),
+    supervisor_id: s(formData.get("supervisor_id")),
+    status: s(formData.get("status")) ?? "ACTIVE",
+    notes: s(formData.get("notes")),
+  });
+  revalidatePath("/dashboard/contracts");
+  revalidatePath("/dashboard");
+}
+
+export async function createAudit(formData: FormData) {
+  const { company } = await requireContext();
+  const supabase = await createClient();
+  const score = s(formData.get("score"));
+  await supabase.from("audits").insert({
+    company_id: company.id,
+    title: s(formData.get("title")) ?? "Sans titre",
+    audit_type: s(formData.get("audit_type")),
+    site_id: s(formData.get("site_id")),
+    auditor_name: s(formData.get("auditor_name")),
+    provider_id: s(formData.get("provider_id")),
+    planned_date: s(formData.get("planned_date")),
+    completed_date: s(formData.get("completed_date")),
+    status: s(formData.get("status")) ?? "PLANNED",
+    result: s(formData.get("result")),
+    score: score ? Number(score) : null,
+    responsible_id: s(formData.get("responsible_id")),
+    supervisor_id: s(formData.get("supervisor_id")),
+    notes: s(formData.get("notes")),
+  });
+  revalidatePath("/dashboard/audits");
+  revalidatePath("/dashboard");
+}
+
+export async function createNonConformity(formData: FormData) {
+  const { company } = await requireContext();
+  const supabase = await createClient();
+  await supabase.from("non_conformities").insert({
+    company_id: company.id,
+    title: s(formData.get("title")) ?? "Sans titre",
+    description: s(formData.get("description")),
+    severity: s(formData.get("severity")) ?? "MEDIUM",
+    source_type: s(formData.get("source_type")),
+    site_id: s(formData.get("site_id")),
+    detected_at: s(formData.get("detected_at")),
+    responsible_id: s(formData.get("responsible_id")),
+    supervisor_id: s(formData.get("supervisor_id")),
+    status: s(formData.get("status")) ?? "OPEN",
+  });
+  revalidatePath("/dashboard/non-conformities");
   revalidatePath("/dashboard");
 }
 

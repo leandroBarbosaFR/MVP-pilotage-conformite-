@@ -21,6 +21,11 @@ import {
   XIcon as X,
   SignOutIcon as SignOut,
   SidebarSimpleIcon as SidebarToggle,
+  BuildingsIcon as Buildings,
+  HandshakeIcon as Handshake,
+  ScrollIcon as Scroll,
+  ClipboardTextIcon as ClipboardText,
+  WarningIcon as Warning,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 import { canAccessModule, type AppModule } from "@/lib/permissions";
@@ -35,10 +40,15 @@ const NAV: NavItem[] = [
   { href: "/dashboard/epi", label: "EPI", icon: HardHat, module: "epi" },
   { href: "/dashboard/equipments", label: "Machines et équipements", icon: Gear, module: "equipments" },
   { href: "/dashboard/vehicles", label: "Véhicules", icon: Truck, module: "vehicles" },
+  { href: "/dashboard/sites", label: "Sites et locaux", icon: Buildings, module: "sites" },
   { href: "/dashboard/obligations", label: "Contrôles réglementaires", icon: ShieldCheck, module: "controls" },
   // Nouvelle section : modules transverses (documents, suivi, administration)
   { href: "/dashboard/documents", label: "Documents", icon: FileText, module: "documents", section: "Suivi & administration" },
   { href: "/dashboard/actions", label: "Actions", icon: ListChecks, module: "actions" },
+  { href: "/dashboard/non-conformities", label: "Non-conformités", icon: Warning, module: "non_conformities" },
+  { href: "/dashboard/audits", label: "Audits et inspections", icon: ClipboardText, module: "audits" },
+  { href: "/dashboard/contracts", label: "Contrats", icon: Scroll, module: "contracts" },
+  { href: "/dashboard/providers", label: "Prestataires", icon: Handshake, module: "providers" },
   { href: "/dashboard/notifications", label: "Alertes", icon: Bell, module: "alerts" },
   { href: "/dashboard/imports", label: "Imports", icon: UploadSimple, module: "imports" },
   { href: "/dashboard/archives", label: "Archives", icon: Archive, module: "archives" },

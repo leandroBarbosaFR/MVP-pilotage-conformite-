@@ -1,14 +1,19 @@
 import { createClient } from "@/lib/supabase/server";
 import type {
   ActionRow,
+  Audit,
+  Contract,
   DocumentRow,
   Employee,
   Epi,
   Equipment,
   ImportRow,
+  NonConformity,
   Notification,
   Obligation,
+  Provider,
   Profile,
+  Site,
   Vehicle,
 } from "@/lib/types/database";
 
@@ -108,6 +113,107 @@ export async function getEmployeeNames(companyId: string): Promise<Map<string, s
     map.set(e.id, [e.first_name, e.last_name].filter(Boolean).join(" "));
   }
   return map;
+}
+
+// --- Modules métier (Prompt 2) ----------------------------------------
+export async function getSites(companyId: string, filters: ListFilters = {}) {
+  const supabase = await createClient();
+  const { from, to } = range(filters.page, filters.pageSize);
+  let q = supabase
+    .from("sites")
+    .select("*", { count: "exact" })
+    .eq("company_id", companyId)
+    .eq("is_archived", filters.includeArchived ?? false)
+    .order("name", { ascending: true })
+    .range(from, to);
+  if (filters.search) q = q.or(`name.ilike.%${filters.search}%,city.ilike.%${filters.search}%`);
+  const { data, count } = await q;
+  return { rows: (data as Site[]) ?? [], count: count ?? 0 };
+}
+
+export async function getSite(id: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.from("sites").select("*").eq("id", id).single();
+  return data as Site | null;
+}
+
+export async function getProviders(companyId: string, filters: ListFilters = {}) {
+  const supabase = await createClient();
+  const { from, to } = range(filters.page, filters.pageSize);
+  let q = supabase
+    .from("providers")
+    .select("*", { count: "exact" })
+    .eq("company_id", companyId)
+    .eq("is_archived", filters.includeArchived ?? false)
+    .order("name", { ascending: true })
+    .range(from, to);
+  if (filters.search) q = q.ilike("name", `%${filters.search}%`);
+  const { data, count } = await q;
+  return { rows: (data as Provider[]) ?? [], count: count ?? 0 };
+}
+
+export async function getContracts(companyId: string, filters: ListFilters = {}) {
+  const supabase = await createClient();
+  const { from, to } = range(filters.page, filters.pageSize);
+  let q = supabase
+    .from("contracts")
+    .select("*", { count: "exact" })
+    .eq("company_id", companyId)
+    .eq("is_archived", filters.includeArchived ?? false)
+    .order("renewal_date", { ascending: true, nullsFirst: false })
+    .range(from, to);
+  if (filters.search) q = q.ilike("title", `%${filters.search}%`);
+  if (filters.status) q = q.eq("status", filters.status);
+  const { data, count } = await q;
+  return { rows: (data as Contract[]) ?? [], count: count ?? 0 };
+}
+
+export async function getAudits(companyId: string, filters: ListFilters = {}) {
+  const supabase = await createClient();
+  const { from, to } = range(filters.page, filters.pageSize);
+  let q = supabase
+    .from("audits")
+    .select("*", { count: "exact" })
+    .eq("company_id", companyId)
+    .eq("is_archived", filters.includeArchived ?? false)
+    .order("planned_date", { ascending: false, nullsFirst: false })
+    .range(from, to);
+  if (filters.search) q = q.ilike("title", `%${filters.search}%`);
+  if (filters.status) q = q.eq("status", filters.status);
+  const { data, count } = await q;
+  return { rows: (data as Audit[]) ?? [], count: count ?? 0 };
+}
+
+export async function getNonConformities(companyId: string, filters: ListFilters = {}) {
+  const supabase = await createClient();
+  const { from, to } = range(filters.page, filters.pageSize);
+  let q = supabase
+    .from("non_conformities")
+    .select("*", { count: "exact" })
+    .eq("company_id", companyId)
+    .eq("is_archived", filters.includeArchived ?? false)
+    .order("detected_at", { ascending: false, nullsFirst: false })
+    .range(from, to);
+  if (filters.search) q = q.ilike("title", `%${filters.search}%`);
+  if (filters.status) q = q.eq("status", filters.status);
+  const { data, count } = await q;
+  return { rows: (data as NonConformity[]) ?? [], count: count ?? 0 };
+}
+
+export async function getSiteDetail(id: string) {
+  const supabase = await createClient();
+  const [site, obligations, contracts, audits] = await Promise.all([
+    supabase.from("sites").select("*").eq("id", id).single(),
+    supabase.from("obligations").select("*").eq("related_entity_id", id).eq("related_entity_type", "SITE").eq("is_archived", false),
+    supabase.from("contracts").select("*").eq("site_id", id).eq("is_archived", false),
+    supabase.from("audits").select("*").eq("site_id", id).eq("is_archived", false),
+  ]);
+  return {
+    site: (site.data as Site) ?? null,
+    obligations: (obligations.data as Obligation[]) ?? [],
+    contracts: (contracts.data as Contract[]) ?? [],
+    audits: (audits.data as Audit[]) ?? [],
+  };
 }
 
 export async function getObligations(companyId: string, filters: ListFilters = {}) {

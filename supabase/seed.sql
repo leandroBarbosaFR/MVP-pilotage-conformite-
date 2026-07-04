@@ -30,6 +30,8 @@ declare
   -- Équipe de démonstration (membres invités, sans compte de connexion)
   p_admin uuid; p_qhse uuid; p_maint uuid; p_rh uuid;
   p_parc uuid; p_expl uuid; p_sup uuid; p_user uuid;
+  s1 uuid; s2 uuid; s3 uuid;
+  pr1 uuid; pr2 uuid; pr3 uuid; pr4 uuid; pr5 uuid; pr6 uuid;
 begin
   if v_company is null then
     return 'Aucune entreprise associée à cet utilisateur.';
@@ -228,6 +230,55 @@ begin
     );
   end loop;
 
-  return 'Données de démonstration chargées : 8 membres d''équipe, 10 véhicules, 8 conducteurs, 6 équipements, 8 EPI, 20 obligations, 10 documents, 20 actions, 6 notifications.';
+  -- Sites et locaux (3)
+  insert into public.sites (company_id, name, site_type, city, postal_code, country, surface_area, activity_type, manager_id, supervisor_id)
+  values (v_company,'Entrepôt Marseille','Entrepôt','Marseille','13011','France',4200,'Logistique',p_expl,p_qhse) returning id into s1;
+  insert into public.sites (company_id, name, site_type, city, postal_code, country, surface_area, activity_type, manager_id, supervisor_id)
+  values (v_company,'Bureau Lyon','Bureau','Lyon','69003','France',650,'Administratif',p_admin,p_qhse) returning id into s2;
+  insert into public.sites (company_id, name, site_type, city, postal_code, country, surface_area, activity_type, manager_id, supervisor_id)
+  values (v_company,'Atelier maintenance','Atelier','Vénissieux','69200','France',1800,'Maintenance',p_maint,p_qhse) returning id into s3;
+
+  -- Prestataires (6)
+  insert into public.providers (company_id, name, provider_type, contact_name, email, phone, city, country)
+  values (v_company,'SécuriFeu Contrôles','Maintenance extincteurs','M. Fabre','contact@securifeu.fr','04 91 00 00 01','Marseille','France') returning id into pr1;
+  insert into public.providers (company_id, name, provider_type, contact_name, email, phone, city, country)
+  values (v_company,'ElecCheck Pro','Maintenance électrique','Mme Roy','contact@eleccheck.fr','04 72 00 00 02','Lyon','France') returning id into pr2;
+  insert into public.providers (company_id, name, provider_type, contact_name, email, phone, city, country)
+  values (v_company,'Garage Transport Services','Maintenance véhicules','M. Léon','contact@gts.fr','04 72 00 00 03','Vénissieux','France') returning id into pr3;
+  insert into public.providers (company_id, name, provider_type, contact_name, email, phone, city, country)
+  values (v_company,'Médecine du Travail Régionale','Médecine du travail','Dr. Meyer','contact@mtr.fr','04 78 00 00 04','Lyon','France') returning id into pr4;
+  insert into public.providers (company_id, name, provider_type, contact_name, email, phone, city, country)
+  values (v_company,'Formation Sécurité Plus','Organisme de formation','Mme Aziz','contact@fsp.fr','04 91 00 00 05','Marseille','France') returning id into pr5;
+  insert into public.providers (company_id, name, provider_type, contact_name, email, phone, city, country)
+  values (v_company,'Assurance Pro Entreprise','Assurance','M. Blanc','contact@ape.fr','01 40 00 00 06','Paris','France') returning id into pr6;
+
+  -- Contrats (6)
+  insert into public.contracts (company_id, title, contract_type, provider_id, site_id, start_date, end_date, renewal_date, notice_period_days, amount, currency, responsible_id, supervisor_id, status)
+  values
+    (v_company,'Contrat maintenance extincteurs','Maintenance extincteurs',pr1,s1,current_date-365,current_date+45,current_date+45,30,4800,'EUR',p_qhse,p_admin,'ACTIVE'),
+    (v_company,'Contrat alarme incendie','Maintenance alarme',pr1,s1,current_date-300,current_date+20,current_date+20,30,3600,'EUR',p_qhse,p_admin,'TO_RENEW'),
+    (v_company,'Assurance multirisque locaux','Assurance multirisque',pr6,s2,current_date-365,current_date+90,current_date+90,60,12000,'EUR',p_qhse,p_admin,'ACTIVE'),
+    (v_company,'Contrat entretien véhicules','Maintenance véhicules',pr3,s3,current_date-200,current_date+130,current_date+130,30,7800,'EUR',p_parc,p_expl,'ACTIVE'),
+    (v_company,'Contrat médecine du travail','Médecine du travail',pr4,s2,current_date-365,current_date+12,current_date+12,30,2400,'EUR',p_rh,p_qhse,'TO_RENEW'),
+    (v_company,'Contrat maintenance électrique','Maintenance électrique',pr2,s3,current_date-400,current_date-8,current_date-8,30,5200,'EUR',p_maint,p_qhse,'EXPIRED');
+
+  -- Audits et inspections (4)
+  insert into public.audits (company_id, title, audit_type, site_id, auditor_name, planned_date, completed_date, status, result, score, responsible_id, supervisor_id)
+  values
+    (v_company,'Audit sécurité semestriel','Audit sécurité',s1,'Cabinet QHSE Conseil',current_date-20,current_date-18,'DONE','MINOR_NC',82,p_qhse,p_admin),
+    (v_company,'Audit client logistique','Audit client',s1,'Cabinet QHSE Conseil',current_date+5,null,'IN_PROGRESS',null,null,p_qhse,p_admin),
+    (v_company,'Inspection interne entrepôt','Audit interne',s1,'Cabinet QHSE Conseil',current_date+30,null,'PLANNED',null,null,p_qhse,p_admin),
+    (v_company,'Visite sécurité atelier','Visite sécurité',s3,'Cabinet QHSE Conseil',current_date-5,null,'LATE',null,null,p_maint,p_qhse);
+
+  -- Non-conformités (5)
+  insert into public.non_conformities (company_id, title, description, severity, source_type, site_id, detected_at, responsible_id, supervisor_id, status)
+  values
+    (v_company,'Registre sécurité non mis à jour','Écart constaté à traiter.','MEDIUM','Audit',s1,current_date-10,p_qhse,p_admin,'OPEN'),
+    (v_company,'Contrôle gaz expiré','Écart constaté à traiter.','HIGH','Contrôle',s3,current_date-25,p_maint,p_qhse,'IN_PROGRESS'),
+    (v_company,'Rapport extincteurs manquant','Écart constaté à traiter.','MEDIUM','Document',s1,current_date-6,p_qhse,p_admin,'OPEN'),
+    (v_company,'Pneus véhicule AB-123-CD à contrôler','Écart constaté à traiter.','HIGH','Véhicule',null,current_date-3,p_parc,p_expl,'OPEN'),
+    (v_company,'Action corrective audit client non terminée','Écart constaté à traiter.','CRITICAL','Audit',s1,current_date-30,p_qhse,p_admin,'IN_PROGRESS');
+
+  return 'Données de démonstration chargées : 8 membres, 3 sites, 6 prestataires, 6 contrats, 4 audits, 5 non-conformités, 10 véhicules, 8 conducteurs, 6 équipements, 8 EPI, 20 obligations, 10 documents, 20 actions, 6 notifications.';
 end;
 $$;

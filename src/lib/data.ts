@@ -89,14 +89,18 @@ export const getModuleBreakdown = cache(async (): Promise<ModuleStat[]> => {
   const cid = ctx.company.id;
   const active = { company_id: cid, is_archived: false };
 
-  const [emp, eqp, veh, epi, obl, doc, act] = await Promise.all([
+  const [emp, eqp, veh, epi, obl, doc, act, sit, ctr, aud, ncf] = await Promise.all([
     supabase.from("employees").select("id").match(active),
     supabase.from("equipments").select("id").match(active),
     supabase.from("vehicles").select("id").match(active),
     supabase.from("epi").select("id, renewal_date").match(active),
-    supabase.from("obligations").select("id, due_date, linked_employee_id, linked_equipment_id, linked_vehicle_id").match(active),
+    supabase.from("obligations").select("id, due_date, module, linked_employee_id, linked_equipment_id, linked_vehicle_id").match(active),
     supabase.from("documents").select("obligation_id, employee_id, equipment_id, vehicle_id, epi_id, expiration_date").match(active),
     supabase.from("actions").select("status, due_date, obligation_id").match(active),
+    supabase.from("sites").select("id").match(active),
+    supabase.from("contracts").select("status, document_id, renewal_date").match(active),
+    supabase.from("audits").select("status").match(active),
+    supabase.from("non_conformities").select("status").match(active),
   ]);
 
   const employees = emp.data ?? [];
@@ -170,6 +174,28 @@ export const getModuleBreakdown = cache(async (): Promise<ModuleStat[]> => {
     return { compliant, toWatch, critical };
   };
 
+  // Obligations rattachées au module SITES (buckets par date d'échéance)
+  const siteObl = obligations.filter((o) => o.module === "SITES");
+  const siteOblStat = fromDates(siteObl.map((o) => o.due_date as string | null));
+
+  // Statuts-> buckets pour contrats / audits / non-conformités
+  const contracts = ctr.data ?? [];
+  const audits = aud.data ?? [];
+  const ncs = ncf.data ?? [];
+  const countBy = (rows: { status?: unknown }[], crit: string[], watch: string[]) => {
+    let compliant = 0, toWatch = 0, critical = 0;
+    for (const r of rows) {
+      const st = String(r.status ?? "");
+      if (crit.includes(st)) critical += 1;
+      else if (watch.includes(st)) toWatch += 1;
+      else compliant += 1;
+    }
+    return { compliant, toWatch, critical };
+  };
+  const ctrStat = countBy(contracts, ["EXPIRED"], ["TO_RENEW"]);
+  const audStat = countBy(audits, ["LATE"], ["PLANNED", "IN_PROGRESS"]);
+  const ncStat = countBy(ncs, ["OPEN"], ["IN_PROGRESS", "RESOLVED"]);
+
   const empStat = fromEntities(employees.map((e) => e.id as string), oblByEmployee, docEmp);
   const eqpStat = fromEntities(equipments.map((e) => e.id as string), oblByEquipment, docEqp);
   const vehStat = fromEntities(vehicles.map((v) => v.id as string), oblByVehicle, docVeh);
@@ -178,12 +204,16 @@ export const getModuleBreakdown = cache(async (): Promise<ModuleStat[]> => {
   const docStat = fromDates(documents.map((d) => d.expiration_date as string | null));
 
   return [
+    { module: "Sites et locaux", href: "/dashboard/sites", total: (sit.data ?? []).length, ...siteOblStat, missingDocs: 0, lateActions: 0 },
     { module: "Personnel", href: "/dashboard/employees", total: employees.length, ...empStat, lateActions: lateActions.personnel },
     { module: "EPI", href: "/dashboard/epi", total: epis.length, ...epiStat, missingDocs: epis.filter((e) => !docEpi.has(e.id as string)).length, lateActions: lateActions.epi },
     { module: "Machines et équipements", href: "/dashboard/equipments", total: equipments.length, ...eqpStat, lateActions: lateActions.equipments },
     { module: "Véhicules", href: "/dashboard/vehicles", total: vehicles.length, ...vehStat, lateActions: lateActions.vehicles },
     { module: "Contrôles réglementaires", href: "/dashboard/obligations", total: obligations.length, ...oblStat, missingDocs: obligations.filter((o) => !docObl.has(o.id as string)).length, lateActions: lateActions.controls },
     { module: "Documents", href: "/dashboard/documents", total: documents.length, ...docStat, missingDocs: 0, lateActions: lateActions.documents },
+    { module: "Contrats", href: "/dashboard/contracts", total: contracts.length, ...ctrStat, missingDocs: contracts.filter((c) => !c.document_id).length, lateActions: 0 },
+    { module: "Audits et inspections", href: "/dashboard/audits", total: audits.length, ...audStat, missingDocs: 0, lateActions: 0 },
+    { module: "Non-conformités", href: "/dashboard/non-conformities", total: ncs.length, ...ncStat, missingDocs: 0, lateActions: 0 },
   ];
 });
 

@@ -12,10 +12,15 @@ export type AppModule =
   | "epi"
   | "equipments"
   | "vehicles"
+  | "sites"
   | "controls"
   | "documents"
   | "actions"
   | "alerts"
+  | "providers"
+  | "contracts"
+  | "audits"
+  | "non_conformities"
   | "imports"
   | "archives"
   | "reports"
@@ -36,13 +41,14 @@ const ALL = "all" as const;
 const MODULE_ACCESS: Record<UserRole, AppModule[] | typeof ALL> = {
   ADMIN: ALL,
   QHSE_MANAGER: [
-    "dashboard", "personnel", "epi", "equipments", "vehicles", "controls",
-    "documents", "actions", "alerts", "imports", "archives", "reports",
+    "dashboard", "personnel", "epi", "equipments", "vehicles", "sites", "controls",
+    "documents", "actions", "alerts", "providers", "contracts", "audits",
+    "non_conformities", "imports", "archives", "reports",
   ],
   HR_MANAGER: ["dashboard", "personnel", "documents", "actions", "alerts", "archives"],
-  MAINTENANCE_MANAGER: ["dashboard", "equipments", "controls", "documents", "actions", "alerts", "archives"],
-  FLEET_MANAGER: ["dashboard", "vehicles", "documents", "actions", "alerts", "archives"],
-  OPERATIONS_MANAGER: ["dashboard", "personnel", "equipments", "vehicles", "actions", "alerts", "reports"],
+  MAINTENANCE_MANAGER: ["dashboard", "equipments", "sites", "controls", "documents", "actions", "alerts", "providers", "non_conformities", "archives"],
+  FLEET_MANAGER: ["dashboard", "vehicles", "documents", "actions", "alerts", "providers", "contracts", "archives"],
+  OPERATIONS_MANAGER: ["dashboard", "personnel", "equipments", "vehicles", "sites", "actions", "alerts", "contracts", "audits", "non_conformities", "reports"],
   SUPERVISOR: ["dashboard", "actions", "alerts", "documents"],
   USER: ["dashboard", "actions", "alerts", "documents"],
 };

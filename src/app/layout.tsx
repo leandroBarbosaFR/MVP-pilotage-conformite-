@@ -5,9 +5,12 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Pilotage Conformité",
+  title: {
+    default: "Conformité PME — Logiciel de pilotage de conformité",
+    template: "%s · Conformité PME",
+  },
   description:
-    "Pilotez vos obligations, échéances et documents de conformité au même endroit.",
+    "Logiciel de pilotage de conformité : obligations, échéances, documents et actions au même endroit.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

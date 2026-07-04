@@ -256,6 +256,103 @@ export interface Notification {
   created_at: string;
 }
 
+export type ContractStatus = "ACTIVE" | "TO_RENEW" | "EXPIRED" | "TERMINATED" | "ARCHIVED";
+export type AuditStatus = "PLANNED" | "IN_PROGRESS" | "DONE" | "LATE" | "CANCELLED" | "ARCHIVED";
+export type AuditResult = "COMPLIANT" | "MINOR_NC" | "MAJOR_NC" | "CRITICAL" | "TO_REVIEW";
+export type NcStatus = "OPEN" | "IN_PROGRESS" | "RESOLVED" | "VERIFIED" | "CLOSED" | "ARCHIVED";
+
+export interface Site extends ArchivableRow {
+  id: string;
+  company_id: string;
+  name: string;
+  site_type: string | null;
+  address: string | null;
+  city: string | null;
+  postal_code: string | null;
+  country: string | null;
+  surface_area: number | null;
+  activity_type: string | null;
+  manager_id: string | null;
+  supervisor_id: string | null;
+  status: string;
+  notes: string | null;
+}
+
+export interface Provider extends ArchivableRow {
+  id: string;
+  company_id: string;
+  name: string;
+  provider_type: string | null;
+  contact_name: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+  notes: string | null;
+  is_active: boolean;
+}
+
+export interface Contract extends ArchivableRow {
+  id: string;
+  company_id: string;
+  title: string;
+  contract_type: string | null;
+  provider_id: string | null;
+  site_id: string | null;
+  related_entity_type: RelatedEntityType | null;
+  related_entity_id: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  renewal_date: string | null;
+  notice_period_days: number | null;
+  amount: number | null;
+  currency: string | null;
+  responsible_id: string | null;
+  supervisor_id: string | null;
+  status: ContractStatus;
+  document_id: string | null;
+  notes: string | null;
+}
+
+export interface Audit extends ArchivableRow {
+  id: string;
+  company_id: string;
+  title: string;
+  audit_type: string | null;
+  site_id: string | null;
+  auditor_name: string | null;
+  provider_id: string | null;
+  planned_date: string | null;
+  completed_date: string | null;
+  status: AuditStatus;
+  result: AuditResult | null;
+  score: number | null;
+  responsible_id: string | null;
+  supervisor_id: string | null;
+  report_document_id: string | null;
+  notes: string | null;
+}
+
+export interface NonConformity extends ArchivableRow {
+  id: string;
+  company_id: string;
+  title: string;
+  description: string | null;
+  severity: PriorityLevel;
+  source_type: string | null;
+  source_id: string | null;
+  site_id: string | null;
+  related_entity_type: RelatedEntityType | null;
+  related_entity_id: string | null;
+  detected_at: string | null;
+  responsible_id: string | null;
+  supervisor_id: string | null;
+  status: NcStatus;
+  corrective_action_id: string | null;
+  document_id: string | null;
+}
+
 export interface NotificationSettings {
   id: string;
   tenant_id: string;

@@ -201,6 +201,97 @@ export const PRIORITY_TONE: Record<PriorityLevel, UiTone> = {
   [PriorityLevel.CRITICAL]: "danger",
 };
 
+// --- Modules métier (Prompt 2) : listes de types + libellés de statut ---
+
+export const SITE_TYPES = [
+  "Bureau", "Entrepôt", "Atelier", "Dépôt", "Agence", "Site de production",
+  "Parking / zone extérieure", "Quai de chargement", "Local technique", "Autre",
+];
+
+export const PROVIDER_TYPES = [
+  "Organisme de contrôle", "Maintenance extincteurs", "Maintenance alarme",
+  "Maintenance électrique", "Maintenance gaz", "Maintenance machines",
+  "Maintenance véhicules", "Garage", "Assurance", "Médecine du travail",
+  "Organisme de formation", "Vérificateur levage", "Télésurveillance",
+  "Dératisation", "Nettoyage", "Autre",
+];
+
+export const CONTRACT_TYPES = [
+  "Assurance locaux", "Assurance véhicule", "Assurance multirisque",
+  "Maintenance extincteurs", "Maintenance alarme", "Maintenance électrique",
+  "Maintenance gaz", "Maintenance machines", "Maintenance véhicules",
+  "Médecine du travail", "Organisme de formation", "Télésurveillance",
+  "Bail commercial", "Nettoyage", "Dératisation", "Autre",
+];
+
+export const AUDIT_TYPES = [
+  "Audit interne", "Audit client", "Audit sécurité", "Audit qualité", "Audit QHSE",
+  "Inspection DREAL", "Inspection du travail", "Contrôle assurance",
+  "Contrôle réglementaire", "Visite sécurité", "Autre",
+];
+
+export const NC_SOURCE_TYPES = [
+  "Audit", "Inspection", "Contrôle", "Document", "Équipement", "Véhicule",
+  "Salarié", "Site", "Manuel",
+];
+
+export const CONTRACT_STATUS_LABELS: Record<string, string> = {
+  ACTIVE: "Actif",
+  TO_RENEW: "À renouveler",
+  EXPIRED: "Expiré",
+  TERMINATED: "Résilié",
+  ARCHIVED: "Archivé",
+};
+export const CONTRACT_STATUS_TONE: Record<string, UiTone> = {
+  ACTIVE: "ok",
+  TO_RENEW: "warn",
+  EXPIRED: "danger",
+  TERMINATED: "none",
+  ARCHIVED: "none",
+};
+
+export const AUDIT_STATUS_LABELS: Record<string, string> = {
+  PLANNED: "Planifié",
+  IN_PROGRESS: "En cours",
+  DONE: "Terminé",
+  LATE: "En retard",
+  CANCELLED: "Annulé",
+  ARCHIVED: "Archivé",
+};
+export const AUDIT_STATUS_TONE: Record<string, UiTone> = {
+  PLANNED: "warn",
+  IN_PROGRESS: "warn",
+  DONE: "ok",
+  LATE: "danger",
+  CANCELLED: "none",
+  ARCHIVED: "none",
+};
+
+export const AUDIT_RESULT_LABELS: Record<string, string> = {
+  COMPLIANT: "Conforme",
+  MINOR_NC: "Non-conformités mineures",
+  MAJOR_NC: "Non-conformités majeures",
+  CRITICAL: "Critique",
+  TO_REVIEW: "À revoir",
+};
+
+export const NC_STATUS_LABELS: Record<string, string> = {
+  OPEN: "Ouverte",
+  IN_PROGRESS: "En cours",
+  RESOLVED: "Corrigée",
+  VERIFIED: "Vérifiée",
+  CLOSED: "Fermée",
+  ARCHIVED: "Archivée",
+};
+export const NC_STATUS_TONE: Record<string, UiTone> = {
+  OPEN: "danger",
+  IN_PROGRESS: "warn",
+  RESOLVED: "warn",
+  VERIFIED: "ok",
+  CLOSED: "ok",
+  ARCHIVED: "none",
+};
+
 export const ACTION_STATUS_TONE: Record<ActionStatus, UiTone> = {
   [ActionStatus.TODO]: "none",
   [ActionStatus.IN_PROGRESS]: "warn",
