@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { requireContext } from "@/lib/queries/auth";
-import { getObligations, getProfiles } from "@/lib/queries/entities";
+import {
+  getObligations,
+  getProfiles,
+  getEmployees,
+  getEquipments,
+  getVehicles,
+} from "@/lib/queries/entities";
 import { createObligation } from "@/lib/actions/entities";
 import { PageHeader } from "@/components/app/page-header";
 import { AddPanel } from "@/components/app/add-panel";
@@ -18,6 +24,8 @@ import {
   PRIORITY_LABELS,
   complianceFromObligationStatus,
 } from "@/lib/status";
+import { MODULE_LABELS, RELATED_ENTITY_LABELS } from "@/types/enums";
+import type { ObligationModule, RelatedEntityType } from "@/lib/types/database";
 import { formatDate } from "@/lib/utils";
 import type { Profile } from "@/lib/types/database";
 
@@ -26,30 +34,46 @@ const PAGE_SIZE = 20;
 export default async function ObligationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; category?: string; archived?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; category?: string; module?: string; archived?: string; page?: string }>;
 }) {
   const sp = await searchParams;
   const { company } = await requireContext();
   const page = Math.max(1, Number(sp.page ?? 1));
   const includeArchived = sp.archived === "1";
 
-  const [{ rows, count }, profiles] = await Promise.all([
+  const [{ rows, count }, profiles, employees, equipments, vehicles] = await Promise.all([
     getObligations(company.id, {
       search: sp.q,
       status: sp.status,
       category: sp.category,
+      module: sp.module,
       includeArchived,
       page,
       pageSize: PAGE_SIZE,
     }),
     getProfiles(company.id),
+    getEmployees(company.id, { pageSize: 500 }),
+    getEquipments(company.id, { pageSize: 500 }),
+    getVehicles(company.id, { pageSize: 500 }),
   ]);
+
+  // Résolution du nom de l'entité liée (véhicule / salarié / équipement)
+  const entMap = new Map<string, string>();
+  for (const v of vehicles.rows) entMap.set(v.id, v.registration_number);
+  for (const e of employees.rows) entMap.set(e.id, [e.first_name, e.last_name].filter(Boolean).join(" "));
+  for (const q of equipments.rows) entMap.set(q.id, q.name);
+
+  const profName = (id: string | null) => {
+    if (!id) return "—";
+    const p = profiles.find((x) => x.id === id);
+    return p ? [p.first_name, p.last_name].filter(Boolean).join(" ") || p.email || "—" : "—";
+  };
 
   return (
     <div>
       <PageHeader
-        title="Obligations"
-        description="Suivi générique de toute obligation ou échéance de conformité."
+        title="Contrôles réglementaires"
+        description="Vue globale consolidée de toutes les obligations, tous modules confondus."
         action={
           <AddPanel title="Nouvelle obligation">
             <ObligationForm profiles={profiles} />
@@ -58,6 +82,14 @@ export default async function ObligationsPage({
       />
 
       <ListToolbar basePath="/dashboard/obligations" search={sp.q} includeArchived={includeArchived}>
+        <div className="w-48">
+          <Select name="module" defaultValue={sp.module ?? ""}>
+            <option value="">Tous modules</option>
+            {Object.entries(MODULE_LABELS).map(([v, l]) => (
+              <option key={v} value={v}>{l}</option>
+            ))}
+          </Select>
+        </div>
         <div className="w-40">
           <Select name="category" defaultValue={sp.category ?? ""}>
             <option value="">Toutes catégories</option>
@@ -80,7 +112,9 @@ export default async function ObligationsPage({
         <THead>
           <TR>
             <TH>Titre</TH>
-            <TH>Catégorie</TH>
+            <TH>Module</TH>
+            <TH>Entité liée</TH>
+            <TH>Responsable</TH>
             <TH>Échéance</TH>
             <TH>Priorité</TH>
             <TH>Statut</TH>
@@ -89,7 +123,7 @@ export default async function ObligationsPage({
         </THead>
         <tbody>
           {rows.length === 0 ? (
-            <EmptyRow colSpan={6} message="Aucune obligation." />
+            <EmptyRow colSpan={8} message="Aucune obligation." />
           ) : (
             rows.map((o) => (
               <TR key={o.id}>
@@ -98,7 +132,26 @@ export default async function ObligationsPage({
                     {o.title}
                   </Link>
                 </TD>
-                <TD>{CATEGORY_LABELS[o.category]}</TD>
+                <TD>
+                  <span className="rounded-md border border-border px-2 py-0.5 text-xs text-muted-foreground">
+                    {MODULE_LABELS[o.module as ObligationModule] ?? o.module}
+                  </span>
+                </TD>
+                <TD>
+                  {o.related_entity_id ? (
+                    <span>
+                      {entMap.get(o.related_entity_id) ?? "—"}
+                      {o.related_entity_type ? (
+                        <span className="ml-1 text-xs text-muted-foreground">
+                          ({RELATED_ENTITY_LABELS[o.related_entity_type as RelatedEntityType]})
+                        </span>
+                      ) : null}
+                    </span>
+                  ) : (
+                    "—"
+                  )}
+                </TD>
+                <TD>{profName(o.responsible_id)}</TD>
                 <TD>{formatDate(o.due_date)}</TD>
                 <TD>{PRIORITY_LABELS[o.priority]}</TD>
                 <TD>
@@ -123,7 +176,7 @@ export default async function ObligationsPage({
         page={page}
         count={count}
         pageSize={PAGE_SIZE}
-        params={{ q: sp.q, status: sp.status, category: sp.category, archived: sp.archived }}
+        params={{ q: sp.q, status: sp.status, category: sp.category, module: sp.module, archived: sp.archived }}
       />
     </div>
   );
@@ -135,6 +188,14 @@ function ObligationForm({ profiles }: { profiles: Profile[] }) {
       <div className="sm:col-span-2">
         <Label>Titre</Label>
         <Input name="title" required />
+      </div>
+      <div>
+        <Label>Module</Label>
+        <Select name="module" defaultValue="REGULATORY_CONTROLS">
+          {Object.entries(MODULE_LABELS).map(([v, l]) => (
+            <option key={v} value={v}>{l}</option>
+          ))}
+        </Select>
       </div>
       <div>
         <Label>Catégorie</Label>
@@ -175,6 +236,17 @@ function ObligationForm({ profiles }: { profiles: Profile[] }) {
       <div>
         <Label>Responsable</Label>
         <Select name="responsible_id" defaultValue="">
+          <option value="">Non assigné</option>
+          {profiles.map((p) => (
+            <option key={p.id} value={p.id}>
+              {[p.first_name, p.last_name].filter(Boolean).join(" ") || p.email}
+            </option>
+          ))}
+        </Select>
+      </div>
+      <div>
+        <Label>Superviseur</Label>
+        <Select name="supervisor_id" defaultValue="">
           <option value="">Non assigné</option>
           {profiles.map((p) => (
             <option key={p.id} value={p.id}>

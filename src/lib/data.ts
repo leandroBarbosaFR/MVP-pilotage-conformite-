@@ -50,6 +50,7 @@ export const getAssignableUsers = cache(async (): Promise<Profile[]> => {
 
 export interface ModuleStat {
   module: string;
+  href: string;
   total: number;
   compliant: number;
   toWatch: number;
@@ -177,12 +178,12 @@ export const getModuleBreakdown = cache(async (): Promise<ModuleStat[]> => {
   const docStat = fromDates(documents.map((d) => d.expiration_date as string | null));
 
   return [
-    { module: "Personnel", total: employees.length, ...empStat, lateActions: lateActions.personnel },
-    { module: "EPI", total: epis.length, ...epiStat, missingDocs: epis.filter((e) => !docEpi.has(e.id as string)).length, lateActions: lateActions.epi },
-    { module: "Machines et équipements", total: equipments.length, ...eqpStat, lateActions: lateActions.equipments },
-    { module: "Véhicules", total: vehicles.length, ...vehStat, lateActions: lateActions.vehicles },
-    { module: "Contrôles réglementaires", total: obligations.length, ...oblStat, missingDocs: obligations.filter((o) => !docObl.has(o.id as string)).length, lateActions: lateActions.controls },
-    { module: "Documents", total: documents.length, ...docStat, missingDocs: 0, lateActions: lateActions.documents },
+    { module: "Personnel", href: "/dashboard/employees", total: employees.length, ...empStat, lateActions: lateActions.personnel },
+    { module: "EPI", href: "/dashboard/epi", total: epis.length, ...epiStat, missingDocs: epis.filter((e) => !docEpi.has(e.id as string)).length, lateActions: lateActions.epi },
+    { module: "Machines et équipements", href: "/dashboard/equipments", total: equipments.length, ...eqpStat, lateActions: lateActions.equipments },
+    { module: "Véhicules", href: "/dashboard/vehicles", total: vehicles.length, ...vehStat, lateActions: lateActions.vehicles },
+    { module: "Contrôles réglementaires", href: "/dashboard/obligations", total: obligations.length, ...oblStat, missingDocs: obligations.filter((o) => !docObl.has(o.id as string)).length, lateActions: lateActions.controls },
+    { module: "Documents", href: "/dashboard/documents", total: documents.length, ...docStat, missingDocs: 0, lateActions: lateActions.documents },
   ];
 });
 

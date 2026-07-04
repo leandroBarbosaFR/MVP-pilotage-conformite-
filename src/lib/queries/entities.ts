@@ -16,6 +16,7 @@ export interface ListFilters {
   search?: string;
   status?: string;
   category?: string;
+  module?: string;
   includeArchived?: boolean;
   page?: number;
   pageSize?: number;
@@ -122,6 +123,7 @@ export async function getObligations(companyId: string, filters: ListFilters = {
   if (filters.search) q = q.ilike("title", `%${filters.search}%`);
   if (filters.status) q = q.eq("status", filters.status);
   if (filters.category) q = q.eq("category", filters.category);
+  if (filters.module) q = q.eq("module", filters.module);
   const { data, count } = await q;
   return { rows: (data as Obligation[]) ?? [], count: count ?? 0 };
 }

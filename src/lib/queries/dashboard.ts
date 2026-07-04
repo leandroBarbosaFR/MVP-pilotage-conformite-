@@ -64,6 +64,20 @@ export async function getMissingDocuments(companyId: string): Promise<Obligation
   return ((obligations as Obligation[]) ?? []).filter((o) => !withDoc.has(o.id)).slice(0, 10);
 }
 
+export async function getExpiredObligations(companyId: string): Promise<Obligation[]> {
+  const supabase = await createClient();
+  const today = new Date().toISOString().slice(0, 10);
+  const { data } = await supabase
+    .from("obligations")
+    .select("*")
+    .eq("company_id", companyId)
+    .eq("is_archived", false)
+    .lt("due_date", today)
+    .order("due_date", { ascending: true })
+    .limit(10);
+  return (data as Obligation[]) ?? [];
+}
+
 export async function getExpiredDocuments(companyId: string): Promise<DocumentRow[]> {
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);

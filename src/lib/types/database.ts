@@ -149,12 +149,44 @@ export interface Epi extends ArchivableRow {
   supervisor_id: string | null;
 }
 
+export type ObligationModule =
+  | "SITES"
+  | "PERSONNEL"
+  | "PPE"
+  | "EQUIPMENT"
+  | "VEHICLES"
+  | "REGULATORY_CONTROLS"
+  | "DOCUMENTS"
+  | "CONTRACTS"
+  | "AUDITS"
+  | "NON_CONFORMITIES"
+  | "ACTIONS";
+
+export type RelatedEntityType =
+  | "SITE"
+  | "EMPLOYEE"
+  | "DRIVER"
+  | "PPE"
+  | "EQUIPMENT"
+  | "VEHICLE"
+  | "DOCUMENT"
+  | "CONTRACT"
+  | "PROVIDER"
+  | "AUDIT"
+  | "NON_CONFORMITY"
+  | "ACTION";
+
 export interface Obligation extends ArchivableRow {
   id: string;
   company_id: string;
   title: string;
   category: ObligationCategory;
+  module: ObligationModule;
+  related_entity_type: RelatedEntityType | null;
+  related_entity_id: string | null;
+  provider_id: string | null;
   description: string | null;
+  notes: string | null;
   due_date: string | null;
   frequency: ObligationFrequency;
   priority: PriorityLevel;

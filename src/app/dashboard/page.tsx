@@ -14,6 +14,7 @@ import {
   getDashboardStats,
   getUpcomingObligations,
   getOverdueActions,
+  getExpiredObligations,
   getExpiredDocuments,
   getPendingActions,
 } from "@/lib/queries/dashboard";
@@ -42,31 +43,46 @@ const PRIORITY_TONE: Record<PriorityLevel, ComplianceStatus> = {
 export default async function DashboardPage() {
   const { company, profile } = await requireContext();
 
-  const [stats, upcoming, overdue, expired, pending, modules] = await Promise.all([
+  const [stats, upcoming, overdue, expiredObl, expired, pending, modules] = await Promise.all([
     getDashboardStats(company.id),
     getUpcomingObligations(company.id),
     getOverdueActions(company.id),
+    getExpiredObligations(company.id),
     getExpiredDocuments(company.id),
     getPendingActions(company.id),
     getModuleBreakdown(),
   ]);
 
   const { stats: s } = stats;
+  // Comptes « obligations » — pour le score et la jauge (conformité des obligations)
   const okCount = s.obligations_ok || 0;
-  const warnCount = s.obligations_soon || 0;
-  const dangerCount = s.obligations_expired || 0;
+  const oblSoon = s.obligations_soon || 0;
+  const oblExpired = s.obligations_expired || 0;
   const total = s.obligations_total || 0;
   const score = total > 0 ? Math.round((okCount / total) * 100) : 0;
+
+  // Comptes « éléments » — pour les cartes KPI et les alertes (obligations + actions + documents)
+  const criticalElements = oblExpired + stats.overdue_actions + stats.expired_documents;
+  const watchElements = oblSoon;
+
   const hasData = total > 0 || modules.some((m) => m.total > 0);
   const canGenerate = canManageUsers(profile.role) || profile.role === "QHSE_MANAGER";
 
-  // Alertes prioritaires : actions en retard + documents expirés + échéances proches
+  // Alertes prioritaires : mêmes catégories que le compteur « Critique »
   const alerts = [
     ...overdue.map((a) => ({
       key: `a-${a.id}`,
       href: `/dashboard/actions/${a.id}`,
       title: a.title,
       sub: `Action en retard — échéance ${formatDate(a.due_date)}`,
+      tone: "danger" as ComplianceStatus,
+      badge: "Critique",
+    })),
+    ...expiredObl.map((o) => ({
+      key: `oe-${o.id}`,
+      href: `/dashboard/obligations/${o.id}`,
+      title: o.title,
+      sub: `Obligation expirée le ${formatDate(o.due_date)}`,
       tone: "danger" as ComplianceStatus,
       badge: "Critique",
     })),
@@ -86,7 +102,8 @@ export default async function DashboardPage() {
       tone: "warn" as ComplianceStatus,
       badge: "À surveiller",
     })),
-  ].slice(0, 7);
+  ];
+  const alertsTop = alerts.slice(0, 7);
 
   const today = new Date().toLocaleDateString("fr-FR", {
     day: "numeric",
@@ -118,8 +135,8 @@ export default async function DashboardPage() {
       {/* Statistiques */}
       <div data-tour="stats" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard label="Conforme" value={hasData ? `${score} %` : "—"} tone="ok" icon={CheckCircle2} />
-        <StatCard label="À surveiller" value={warnCount} tone="warn" icon={AlertTriangle} hint="Éléments" />
-        <StatCard label="Critique" value={dangerCount} tone="danger" icon={AlertOctagon} hint="Éléments" />
+        <StatCard label="À surveiller" value={watchElements} tone="warn" icon={AlertTriangle} hint="Éléments" />
+        <StatCard label="Critique" value={criticalElements} tone="danger" icon={AlertOctagon} hint="Éléments" />
         <StatCard label="Total obligations" value={total} tone="none" icon={ClipboardList} hint="Tous types" />
         <StatCard label="Actions en retard" value={stats.overdue_actions} tone="danger" icon={Clock} />
         <StatCard label="Documents manquants" value={s.missing_documents} tone="warn" icon={FileWarning} />
@@ -148,9 +165,9 @@ export default async function DashboardPage() {
             </Link>
           </CardHeader>
           <CardContent className="p-0">
-            {alerts.length > 0 ? (
+            {alertsTop.length > 0 ? (
               <ul className="divide-y divide-border">
-                {alerts.map((al) => (
+                {alertsTop.map((al) => (
                   <li key={al.key}>
                     <Link href={al.href} className="flex items-center gap-3 px-4 py-3 hover:bg-muted">
                       <span
@@ -180,11 +197,11 @@ export default async function DashboardPage() {
             <CardTitle>Score de conformité</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-5 py-6">
-            <ScoreDonut score={score} ok={okCount} warn={warnCount} danger={dangerCount} />
+            <ScoreDonut score={score} ok={okCount} warn={oblSoon} danger={oblExpired} />
             <div className="grid w-full grid-cols-3 gap-2 text-center">
               <Legend label="Conforme" tone="ok" count={okCount} total={total} />
-              <Legend label="À surveiller" tone="warn" count={warnCount} total={total} />
-              <Legend label="Critique" tone="danger" count={dangerCount} total={total} />
+              <Legend label="À surveiller" tone="warn" count={oblSoon} total={total} />
+              <Legend label="Critique" tone="danger" count={oblExpired} total={total} />
             </div>
           </CardContent>
         </Card>
@@ -276,7 +293,9 @@ function ModuleBreakdown({ modules }: { modules: ModuleStat[] }) {
             <tbody className="divide-y divide-border">
               {modules.map((m) => (
                 <tr key={m.module} className="hover:bg-muted">
-                  <td className="px-4 py-3 font-medium text-foreground">{m.module}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">
+                    <Link href={m.href} className="hover:text-accent hover:underline">{m.module}</Link>
+                  </td>
                   <td className="px-4 py-3 text-right tabular-nums">{m.total}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-status-ok">{m.compliant}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-status-warn">{m.toWatch}</td>

@@ -111,15 +111,7 @@ export const vehicles: Row[] = Array.from({ length: 10 }, (_, k) => {
   };
 });
 
-// --- Obligations (contrôles réglementaires) ----------------------------
-const OBL_TITLES = [
-  "Contrôle technique", "Assurance véhicule", "Tachygraphe", "Extincteur véhicule",
-  "Visite médicale", "Renouvellement permis", "FIMO", "Vérification levage",
-  "Contrôle réglementaire équipement", "Audit interne QHSE", "Habilitation électrique",
-  "Formation ADR", "Contrôle extincteurs site", "Carte conducteur",
-];
-const OBL_CAT = ["vehicule", "vehicule", "vehicule", "vehicule", "conducteur", "conducteur", "conducteur", "equipement", "equipement", "audit", "formation", "formation", "site", "conducteur"];
-const OBL_DUE = [-40, -10, 5, 12, 25, 60, 120, -3, 18, 200, -6, 40, 8, 75];
+// --- Obligations : rattachées à leur module métier + entité liée -------
 const FREQ = ["annuelle", "annuelle", "semestrielle", "trimestrielle", "unique"];
 const PRIO = ["LOW", "MEDIUM", "CRITICAL"];
 function compliance(days: number): string {
@@ -127,24 +119,53 @@ function compliance(days: number): string {
   if (days <= 30) return "EXPIRING_SOON";
   return "COMPLIANT";
 }
-export const obligations: Row[] = OBL_TITLES.map((t, k) => {
+
+const OBL_DEFS: {
+  title: string;
+  category: string;
+  module: string;
+  ret: string | null;
+  ent: string | null;
+  due: number;
+}[] = [
+  { title: "Contrôle technique", category: "vehicule", module: "VEHICLES", ret: "VEHICLE", ent: "veh-1", due: -40 },
+  { title: "Assurance véhicule", category: "vehicule", module: "VEHICLES", ret: "VEHICLE", ent: "veh-1", due: 12 },
+  { title: "Tachygraphe", category: "vehicule", module: "VEHICLES", ret: "VEHICLE", ent: "veh-3", due: 5 },
+  { title: "Extincteur véhicule", category: "vehicule", module: "VEHICLES", ret: "VEHICLE", ent: "veh-2", due: 60 },
+  { title: "Visite médicale", category: "conducteur", module: "PERSONNEL", ret: "EMPLOYEE", ent: "emp-4", due: 25 },
+  { title: "Renouvellement permis", category: "conducteur", module: "PERSONNEL", ret: "DRIVER", ent: "emp-1", due: -6 },
+  { title: "FIMO", category: "conducteur", module: "PERSONNEL", ret: "DRIVER", ent: "emp-5", due: 120 },
+  { title: "Vérification levage", category: "equipement", module: "EQUIPMENT", ret: "EQUIPMENT", ent: "eqp-2", due: -3 },
+  { title: "Contrôle réglementaire équipement", category: "equipement", module: "EQUIPMENT", ret: "EQUIPMENT", ent: "eqp-3", due: 18 },
+  { title: "Audit interne QHSE", category: "audit", module: "REGULATORY_CONTROLS", ret: null, ent: null, due: 200 },
+  { title: "Habilitation électrique", category: "formation", module: "PERSONNEL", ret: "EMPLOYEE", ent: "emp-2", due: -6 },
+  { title: "Formation ADR", category: "formation", module: "PERSONNEL", ret: "EMPLOYEE", ent: "emp-6", due: 40 },
+  { title: "Contrôle extincteurs site", category: "site", module: "SITES", ret: "SITE", ent: null, due: 8 },
+  { title: "Carte conducteur", category: "conducteur", module: "PERSONNEL", ret: "DRIVER", ent: "emp-8", due: 75 },
+];
+
+export const obligations: Row[] = OBL_DEFS.map((d, k) => {
   const i = k + 1;
-  const due = OBL_DUE[k];
   return {
     id: `obl-${i}`,
     company_id: C,
-    title: t,
-    category: OBL_CAT[k],
+    title: d.title,
+    category: d.category,
+    module: d.module,
+    related_entity_type: d.ret,
+    related_entity_id: d.ent,
+    provider_id: null,
     description: "Obligation de conformité à suivre — échéance de référence.",
-    due_date: iso(due),
+    notes: null,
+    due_date: iso(d.due),
     frequency: FREQ[i % 5],
     priority: PRIO[i % 3],
-    status: compliance(due),
+    status: compliance(d.due),
     responsible_id: i % 5 === 0 ? null : "p-qhse",
     supervisor_id: "p-qhse",
-    linked_vehicle_id: i % 3 === 0 ? `veh-${1 + (i % 10)}` : null,
-    linked_employee_id: i % 3 === 1 ? `emp-${1 + (i % 8)}` : null,
-    linked_equipment_id: i % 3 === 2 ? `eqp-${1 + (i % 6)}` : null,
+    linked_vehicle_id: d.ret === "VEHICLE" ? d.ent : null,
+    linked_employee_id: d.ret === "EMPLOYEE" || d.ret === "DRIVER" ? d.ent : null,
+    linked_equipment_id: d.ret === "EQUIPMENT" ? d.ent : null,
     comments: null,
     ...archivable,
   };

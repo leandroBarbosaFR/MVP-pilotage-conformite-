@@ -27,7 +27,7 @@ import { canAccessModule, type AppModule } from "@/lib/permissions";
 import { USER_ROLE_LABELS } from "@/types/enums";
 import type { UserRole } from "@/lib/types/database";
 
-type NavItem = { href: string; label: string; icon: typeof SquaresFour; module: AppModule; divider?: boolean };
+type NavItem = { href: string; label: string; icon: typeof SquaresFour; module: AppModule; section?: string };
 
 const NAV: NavItem[] = [
   { href: "/dashboard", label: "Tableau de bord", icon: SquaresFour, module: "dashboard" },
@@ -36,8 +36,8 @@ const NAV: NavItem[] = [
   { href: "/dashboard/equipments", label: "Machines et équipements", icon: Gear, module: "equipments" },
   { href: "/dashboard/vehicles", label: "Véhicules", icon: Truck, module: "vehicles" },
   { href: "/dashboard/obligations", label: "Contrôles réglementaires", icon: ShieldCheck, module: "controls" },
-  // Séparateur orange : modules transverses (documents, suivi, admin)
-  { href: "/dashboard/documents", label: "Documents", icon: FileText, module: "documents", divider: true },
+  // Nouvelle section : modules transverses (documents, suivi, administration)
+  { href: "/dashboard/documents", label: "Documents", icon: FileText, module: "documents", section: "Suivi & administration" },
   { href: "/dashboard/actions", label: "Actions", icon: ListChecks, module: "actions" },
   { href: "/dashboard/notifications", label: "Alertes", icon: Bell, module: "alerts" },
   { href: "/dashboard/imports", label: "Imports", icon: UploadSimple, module: "imports" },
@@ -102,6 +102,7 @@ export function Sidebar({
         className={cn(
           "z-20 shrink-0 bg-sidebar text-sidebar-foreground",
           "md:sticky md:top-0 md:flex md:h-screen md:flex-col",
+          "md:transition-[width] md:duration-300 md:ease-in-out motion-reduce:md:transition-none",
           collapsed ? "md:w-16" : "md:w-64",
           open ? "flex w-full flex-col" : "hidden"
         )}
@@ -132,12 +133,18 @@ export function Sidebar({
 
         {/* Navigation */}
         <nav data-tour="nav" className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
-          {nav.map(({ href, label, icon: Icon, divider }) => {
+          {nav.map(({ href, label, icon: Icon, section }) => {
             const active = isActive(href);
             return (
               <Fragment key={href}>
-                {divider ? (
-                  <div className={cn("my-2 border-t border-accent/50", collapsed ? "mx-2" : "mx-1")} aria-hidden />
+                {section ? (
+                  collapsed ? (
+                    <div className="mx-3 my-2 border-t border-sidebar-border/70" aria-hidden />
+                  ) : (
+                    <div className="px-3 pb-1 pt-4 text-[11px] font-medium uppercase tracking-wider text-sidebar-foreground/50">
+                      {section}
+                    </div>
+                  )
                 ) : null}
                 <Link
                   href={href}

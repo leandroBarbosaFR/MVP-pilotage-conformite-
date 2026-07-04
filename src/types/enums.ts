@@ -42,6 +42,35 @@ export enum ComplianceStatus {
   ARCHIVED = "ARCHIVED",
 }
 
+export enum ObligationModule {
+  SITES = "SITES",
+  PERSONNEL = "PERSONNEL",
+  PPE = "PPE",
+  EQUIPMENT = "EQUIPMENT",
+  VEHICLES = "VEHICLES",
+  REGULATORY_CONTROLS = "REGULATORY_CONTROLS",
+  DOCUMENTS = "DOCUMENTS",
+  CONTRACTS = "CONTRACTS",
+  AUDITS = "AUDITS",
+  NON_CONFORMITIES = "NON_CONFORMITIES",
+  ACTIONS = "ACTIONS",
+}
+
+export enum RelatedEntityType {
+  SITE = "SITE",
+  EMPLOYEE = "EMPLOYEE",
+  DRIVER = "DRIVER",
+  PPE = "PPE",
+  EQUIPMENT = "EQUIPMENT",
+  VEHICLE = "VEHICLE",
+  DOCUMENT = "DOCUMENT",
+  CONTRACT = "CONTRACT",
+  PROVIDER = "PROVIDER",
+  AUDIT = "AUDIT",
+  NON_CONFORMITY = "NON_CONFORMITY",
+  ACTION = "ACTION",
+}
+
 export enum NotificationType {
   DUE_SOON = "DUE_SOON",
   EXPIRED = "EXPIRED",
@@ -93,6 +122,50 @@ export const COMPLIANCE_STATUS_LABELS: Record<ComplianceStatus, string> = {
   [ComplianceStatus.MISSING_DOCUMENT]: "Document manquant",
   [ComplianceStatus.LATE]: "En retard",
   [ComplianceStatus.ARCHIVED]: "Archivé",
+};
+
+export const MODULE_LABELS: Record<ObligationModule, string> = {
+  [ObligationModule.SITES]: "Sites et locaux",
+  [ObligationModule.PERSONNEL]: "Personnel",
+  [ObligationModule.PPE]: "EPI",
+  [ObligationModule.EQUIPMENT]: "Machines et équipements",
+  [ObligationModule.VEHICLES]: "Véhicules",
+  [ObligationModule.REGULATORY_CONTROLS]: "Contrôles réglementaires",
+  [ObligationModule.DOCUMENTS]: "Documents",
+  [ObligationModule.CONTRACTS]: "Contrats",
+  [ObligationModule.AUDITS]: "Audits et inspections",
+  [ObligationModule.NON_CONFORMITIES]: "Non-conformités",
+  [ObligationModule.ACTIONS]: "Actions",
+};
+
+/** Route de la page métier associée à un module (pour cliquer depuis le dashboard). */
+export const MODULE_HREF: Record<ObligationModule, string> = {
+  [ObligationModule.SITES]: "/dashboard/sites",
+  [ObligationModule.PERSONNEL]: "/dashboard/employees",
+  [ObligationModule.PPE]: "/dashboard/epi",
+  [ObligationModule.EQUIPMENT]: "/dashboard/equipments",
+  [ObligationModule.VEHICLES]: "/dashboard/vehicles",
+  [ObligationModule.REGULATORY_CONTROLS]: "/dashboard/obligations",
+  [ObligationModule.DOCUMENTS]: "/dashboard/documents",
+  [ObligationModule.CONTRACTS]: "/dashboard/contracts",
+  [ObligationModule.AUDITS]: "/dashboard/audits",
+  [ObligationModule.NON_CONFORMITIES]: "/dashboard/non-conformities",
+  [ObligationModule.ACTIONS]: "/dashboard/actions",
+};
+
+export const RELATED_ENTITY_LABELS: Record<RelatedEntityType, string> = {
+  [RelatedEntityType.SITE]: "Site",
+  [RelatedEntityType.EMPLOYEE]: "Salarié",
+  [RelatedEntityType.DRIVER]: "Conducteur",
+  [RelatedEntityType.PPE]: "EPI",
+  [RelatedEntityType.EQUIPMENT]: "Équipement",
+  [RelatedEntityType.VEHICLE]: "Véhicule",
+  [RelatedEntityType.DOCUMENT]: "Document",
+  [RelatedEntityType.CONTRACT]: "Contrat",
+  [RelatedEntityType.PROVIDER]: "Prestataire",
+  [RelatedEntityType.AUDIT]: "Audit",
+  [RelatedEntityType.NON_CONFORMITY]: "Non-conformité",
+  [RelatedEntityType.ACTION]: "Action",
 };
 
 export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {

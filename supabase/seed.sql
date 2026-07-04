@@ -139,7 +139,7 @@ begin
     else st := 'COMPLIANT';
     end if;
 
-    insert into public.obligations (company_id, title, category, description, due_date, frequency, priority, status, responsible_id, supervisor_id, linked_vehicle_id, linked_employee_id, linked_equipment_id)
+    insert into public.obligations (company_id, title, category, description, due_date, frequency, priority, status, responsible_id, supervisor_id, linked_vehicle_id, linked_employee_id, linked_equipment_id, module, related_entity_type, related_entity_id)
     values (
       v_company,
       (array[
@@ -159,7 +159,12 @@ begin
       p_qhse,
       case when i % 3 = 0 then veh[1 + (i % array_length(veh, 1))] end,
       case when i % 3 = 1 then emp[1 + (i % array_length(emp, 1))] end,
-      case when i % 3 = 2 then eqp[1 + (i % array_length(eqp, 1))] end
+      case when i % 3 = 2 then eqp[1 + (i % array_length(eqp, 1))] end,
+      (case when i % 3 = 0 then 'VEHICLES' when i % 3 = 1 then 'PERSONNEL' else 'EQUIPMENT' end)::obligation_module,
+      (case when i % 3 = 0 then 'VEHICLE' when i % 3 = 1 then 'EMPLOYEE' else 'EQUIPMENT' end)::related_entity_type,
+      case when i % 3 = 0 then veh[1 + (i % array_length(veh, 1))]
+           when i % 3 = 1 then emp[1 + (i % array_length(emp, 1))]
+           else eqp[1 + (i % array_length(eqp, 1))] end
     ) returning id into oid;
     obs := array_append(obs, oid);
   end loop;
