@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { createDocument } from "@/lib/actions/entities";
 import { Button } from "@/components/ui/button";
-import { Input, Label } from "@/components/ui/input";
+import { FileInput, Input, Label } from "@/components/ui/input";
 
 const BUCKET = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || "documents";
 
@@ -99,9 +99,8 @@ export function UploadDocument({
       </div>
       <div className="sm:col-span-2">
         <Label>Fichier</Label>
-        <Input
+        <FileInput
           name="file"
-          type="file"
           accept="image/*,application/pdf"
           capture="environment"
           required

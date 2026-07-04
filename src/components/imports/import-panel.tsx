@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import * as XLSX from "xlsx";
 import { runImport } from "@/lib/actions/imports";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Select } from "@/components/ui/input";
+import { FileInput, Label, Select } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, THead, TR, TH, TD } from "@/components/ui/table";
 
@@ -170,7 +170,7 @@ export function ImportPanel({ companyId }: { companyId: string }) {
         {/* Étape 2 : fichier */}
         <div className="max-w-md">
           <Label>2. Fichier</Label>
-          <Input type="file" accept=".csv,.xls,.xlsx" onChange={handleFile} />
+          <FileInput accept=".csv,.xls,.xlsx" onChange={handleFile} />
         </div>
 
         {/* Étape 3 : aperçu + mapping */}
