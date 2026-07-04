@@ -16,11 +16,14 @@ export function statusFromDate(date: string | null | undefined): ComplianceStatu
 
 export function complianceFromObligationStatus(s: ObligationStatus): ComplianceStatus {
   switch (s) {
-    case "a_jour":
+    case "COMPLIANT":
       return "ok";
-    case "bientot_expire":
+    case "TO_WATCH":
+    case "EXPIRING_SOON":
+    case "MISSING_DOCUMENT":
       return "warn";
-    case "expire":
+    case "EXPIRED":
+    case "LATE":
       return "danger";
     default:
       return "none";
@@ -29,11 +32,13 @@ export function complianceFromObligationStatus(s: ObligationStatus): ComplianceS
 
 export function complianceFromActionStatus(s: ActionStatus): ComplianceStatus {
   switch (s) {
-    case "termine":
+    case "DONE":
       return "ok";
-    case "en_cours":
+    case "IN_PROGRESS":
+    case "PLANNED":
+    case "WAITING":
       return "warn";
-    case "en_retard":
+    case "LATE":
       return "danger";
     default:
       return "none";
@@ -48,18 +53,24 @@ export const STATUS_LABELS: Record<ComplianceStatus, string> = {
 };
 
 export const OBLIGATION_STATUS_LABELS: Record<ObligationStatus, string> = {
-  a_jour: "À jour",
-  bientot_expire: "Bientôt expiré",
-  expire: "Expiré",
-  archive: "Archivé",
+  COMPLIANT: "Conforme",
+  TO_WATCH: "À surveiller",
+  EXPIRING_SOON: "Bientôt expiré",
+  EXPIRED: "Expiré",
+  MISSING_DOCUMENT: "Document manquant",
+  LATE: "En retard",
+  ARCHIVED: "Archivé",
 };
 
 export const ACTION_STATUS_LABELS: Record<ActionStatus, string> = {
-  a_faire: "À faire",
-  en_cours: "En cours",
-  termine: "Terminé",
-  en_retard: "En retard",
-  archive: "Archivé",
+  TODO: "À faire",
+  IN_PROGRESS: "En cours",
+  PLANNED: "Planifié",
+  WAITING: "En attente",
+  DONE: "Terminé",
+  LATE: "En retard",
+  CANCELLED: "Annulé",
+  ARCHIVED: "Archivé",
 };
 
 export const CATEGORY_LABELS: Record<string, string> = {
@@ -94,7 +105,8 @@ export const FREQUENCY_LABELS: Record<string, string> = {
 };
 
 export const PRIORITY_LABELS: Record<string, string> = {
-  faible: "Faible",
-  moyen: "Moyen",
-  critique: "Critique",
+  LOW: "Faible",
+  MEDIUM: "Moyenne",
+  HIGH: "Haute",
+  CRITICAL: "Critique",
 };

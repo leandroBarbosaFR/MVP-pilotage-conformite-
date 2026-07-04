@@ -43,6 +43,12 @@ export default async function ActionsPage({
     getObligations(company.id, { pageSize: 200 }),
   ]);
 
+  const nameOf = (id: string | null) => {
+    if (!id) return "—";
+    const p = profiles.find((x) => x.id === id);
+    return p ? [p.first_name, p.last_name].filter(Boolean).join(" ") || p.email || "—" : "—";
+  };
+
   return (
     <div>
       <PageHeader
@@ -70,6 +76,8 @@ export default async function ActionsPage({
         <THead>
           <TR>
             <TH>Titre</TH>
+            <TH>Assigné à</TH>
+            <TH>Superviseur</TH>
             <TH>Priorité</TH>
             <TH>Échéance</TH>
             <TH>Statut</TH>
@@ -78,7 +86,7 @@ export default async function ActionsPage({
         </THead>
         <tbody>
           {rows.length === 0 ? (
-            <EmptyRow colSpan={5} message="Aucune action." />
+            <EmptyRow colSpan={7} message="Aucune action." />
           ) : (
             rows.map((a) => (
               <TR key={a.id}>
@@ -87,6 +95,8 @@ export default async function ActionsPage({
                     {a.title}
                   </Link>
                 </TD>
+                <TD>{nameOf(a.assigned_to)}</TD>
+                <TD>{nameOf(a.supervisor_id)}</TD>
                 <TD>{PRIORITY_LABELS[a.priority]}</TD>
                 <TD>{formatDate(a.due_date)}</TD>
                 <TD>
@@ -126,7 +136,7 @@ function ActionForm({ profiles, obligations }: { profiles: Profile[]; obligation
       </div>
       <div>
         <Label>Statut</Label>
-        <Select name="status" defaultValue="a_faire">
+        <Select name="status" defaultValue="TODO">
           {Object.entries(ACTION_STATUS_LABELS).map(([v, l]) => (
             <option key={v} value={v}>{l}</option>
           ))}
@@ -134,7 +144,7 @@ function ActionForm({ profiles, obligations }: { profiles: Profile[]; obligation
       </div>
       <div>
         <Label>Priorité</Label>
-        <Select name="priority" defaultValue="moyen">
+        <Select name="priority" defaultValue="MEDIUM">
           {Object.entries(PRIORITY_LABELS).map(([v, l]) => (
             <option key={v} value={v}>{l}</option>
           ))}
@@ -145,8 +155,23 @@ function ActionForm({ profiles, obligations }: { profiles: Profile[]; obligation
         <Input name="due_date" type="date" />
       </div>
       <div>
-        <Label>Responsable</Label>
-        <Select name="responsible_id" defaultValue="">
+        <Label>Catégorie</Label>
+        <Input name="category" placeholder="RH, Maintenance, Parc…" />
+      </div>
+      <div>
+        <Label>Assigné à</Label>
+        <Select name="assigned_to" defaultValue="">
+          <option value="">Non assigné</option>
+          {profiles.map((p) => (
+            <option key={p.id} value={p.id}>
+              {[p.first_name, p.last_name].filter(Boolean).join(" ") || p.email}
+            </option>
+          ))}
+        </Select>
+      </div>
+      <div>
+        <Label>Superviseur</Label>
+        <Select name="supervisor_id" defaultValue="">
           <option value="">Non assigné</option>
           {profiles.map((p) => (
             <option key={p.id} value={p.id}>

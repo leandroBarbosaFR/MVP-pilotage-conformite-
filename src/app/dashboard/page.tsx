@@ -18,6 +18,11 @@ import {
   getPendingActions,
 } from "@/lib/queries/dashboard";
 import { StatCard } from "@/components/app/stat-card";
+import { DashboardTour } from "@/components/app/dashboard-tour";
+import { UpdateAlertsButton } from "@/components/app/update-alerts-button";
+import { DemoButton } from "@/components/settings/demo-button";
+import { getModuleBreakdown, type ModuleStat } from "@/lib/data";
+import { canManageUsers } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
@@ -29,20 +34,22 @@ import { formatDate, daysUntil } from "@/lib/utils";
 import type { ComplianceStatus, PriorityLevel } from "@/lib/types/database";
 
 const PRIORITY_TONE: Record<PriorityLevel, ComplianceStatus> = {
-  critique: "danger",
-  moyen: "warn",
-  faible: "none",
+  CRITICAL: "danger",
+  HIGH: "warn",
+  MEDIUM: "warn",
+  LOW: "none",
 };
 
 export default async function DashboardPage() {
-  const { company } = await requireContext();
+  const { company, profile } = await requireContext();
 
-  const [stats, upcoming, overdue, expired, pending] = await Promise.all([
+  const [stats, upcoming, overdue, expired, pending, modules] = await Promise.all([
     getDashboardStats(company.id),
     getUpcomingObligations(company.id),
     getOverdueActions(company.id),
     getExpiredDocuments(company.id),
     getPendingActions(company.id),
+    getModuleBreakdown(),
   ]);
 
   const { stats: s } = stats;
@@ -50,7 +57,9 @@ export default async function DashboardPage() {
   const warnCount = s.obligations_soon || 0;
   const dangerCount = s.obligations_expired || 0;
   const total = s.obligations_total || 0;
-  const score = total > 0 ? Math.round((okCount / total) * 100) : 100;
+  const score = total > 0 ? Math.round((okCount / total) * 100) : 0;
+  const hasData = total > 0 || modules.some((m) => m.total > 0);
+  const canGenerate = canManageUsers(profile.role) || profile.role === "QHSE_MANAGER";
 
   // Alertes prioritaires : actions en retard + documents expirés + échéances proches
   const alerts = [
@@ -88,13 +97,15 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <DashboardTour />
       {/* En-tête */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Tableau de bord</h1>
           <p className="mt-1 text-sm text-muted-foreground">Vue globale de votre conformité</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {canGenerate ? <UpdateAlertsButton /> : null}
           <span className="inline-flex items-center gap-2">
             <Calendar size={16} className="text-muted-foreground" />
             {today}
@@ -107,8 +118,8 @@ export default async function DashboardPage() {
       </div>
 
       {/* Statistiques */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <StatCard label="Conforme" value={`${score} %`} tone="ok" icon={CheckCircle2} />
+      <div data-tour="stats" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <StatCard label="Conforme" value={hasData ? `${score} %` : "—"} tone="ok" icon={CheckCircle2} />
         <StatCard label="À surveiller" value={warnCount} tone="warn" icon={AlertTriangle} hint="Éléments" />
         <StatCard label="Critique" value={dangerCount} tone="danger" icon={AlertOctagon} hint="Éléments" />
         <StatCard label="Total obligations" value={total} tone="none" icon={ClipboardList} hint="Tous types" />
@@ -116,9 +127,22 @@ export default async function DashboardPage() {
         <StatCard label="Documents manquants" value={s.missing_documents} tone="warn" icon={FileWarning} />
       </div>
 
+      {!hasData ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-4 py-14 text-center">
+            <p className="text-sm font-medium text-foreground">Aucune donnée</p>
+            <p className="max-w-md text-sm text-muted-foreground">
+              Aucune obligation, aucun équipement ni document n&apos;est encore enregistré. Chargez
+              un jeu de démonstration ou commencez par ajouter vos données.
+            </p>
+            <DemoButton />
+          </CardContent>
+        </Card>
+      ) : (
+      <>
       {/* Alertes + Score */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card data-tour="alerts" className="lg:col-span-2">
           <CardHeader className="flex items-center justify-between">
             <CardTitle>Alertes prioritaires</CardTitle>
             <Link href="/dashboard/notifications" className="text-xs font-medium text-accent hover:underline">
@@ -153,7 +177,7 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card data-tour="score">
           <CardHeader>
             <CardTitle>Score de conformité</CardTitle>
           </CardHeader>
@@ -169,7 +193,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Actions à réaliser */}
-      <Card>
+      <Card data-tour="actions">
         <CardHeader className="flex items-center justify-between">
           <CardTitle>Actions à réaliser</CardTitle>
           <Link href="/dashboard/actions" className="text-xs font-medium text-accent hover:underline">
@@ -222,7 +246,52 @@ export default async function DashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Répartition par module */}
+      <ModuleBreakdown modules={modules} />
+      </>
+      )}
     </div>
+  );
+}
+
+function ModuleBreakdown({ modules }: { modules: ModuleStat[] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Répartition par module</CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <th className="px-4 py-3 font-medium">Module</th>
+                <th className="px-4 py-3 text-right font-medium">Total</th>
+                <th className="px-4 py-3 text-right font-medium">Conforme</th>
+                <th className="px-4 py-3 text-right font-medium">À surveiller</th>
+                <th className="px-4 py-3 text-right font-medium">Critique</th>
+                <th className="px-4 py-3 text-right font-medium">Docs manquants</th>
+                <th className="px-4 py-3 text-right font-medium">Actions en retard</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {modules.map((m) => (
+                <tr key={m.module} className="hover:bg-muted">
+                  <td className="px-4 py-3 font-medium text-foreground">{m.module}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{m.total}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-status-ok">{m.compliant}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-status-warn">{m.toWatch}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-status-danger">{m.critical}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{m.missingDocs}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{m.lateActions}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

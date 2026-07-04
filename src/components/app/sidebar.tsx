@@ -22,21 +22,24 @@ import {
   SignOutIcon as SignOut,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
+import { canAccessModule, type AppModule } from "@/lib/permissions";
+import { USER_ROLE_LABELS } from "@/types/enums";
+import type { UserRole } from "@/lib/types/database";
 
-const NAV = [
-  { href: "/dashboard", label: "Tableau de bord", icon: SquaresFour },
-  { href: "/dashboard/employees", label: "Personnel", icon: Users },
-  { href: "/dashboard/epi", label: "EPI", icon: HardHat },
-  { href: "/dashboard/equipments", label: "Machines et équipements", icon: Gear },
-  { href: "/dashboard/vehicles", label: "Véhicules", icon: Truck },
-  { href: "/dashboard/obligations", label: "Contrôles réglementaires", icon: ShieldCheck },
-  { href: "/dashboard/documents", label: "Documents", icon: FileText },
-  { href: "/dashboard/actions", label: "Actions", icon: ListChecks },
-  { href: "/dashboard/notifications", label: "Alertes", icon: Bell },
-  { href: "/dashboard/imports", label: "Imports", icon: UploadSimple },
-  { href: "/dashboard/archives", label: "Archives", icon: Archive },
-  { href: "/dashboard/rapports", label: "Rapports", icon: ChartBar },
-  { href: "/dashboard/settings", label: "Paramètres", icon: GearSix },
+const NAV: { href: string; label: string; icon: typeof SquaresFour; module: AppModule }[] = [
+  { href: "/dashboard", label: "Tableau de bord", icon: SquaresFour, module: "dashboard" },
+  { href: "/dashboard/employees", label: "Personnel", icon: Users, module: "personnel" },
+  { href: "/dashboard/epi", label: "EPI", icon: HardHat, module: "epi" },
+  { href: "/dashboard/equipments", label: "Machines et équipements", icon: Gear, module: "equipments" },
+  { href: "/dashboard/vehicles", label: "Véhicules", icon: Truck, module: "vehicles" },
+  { href: "/dashboard/obligations", label: "Contrôles réglementaires", icon: ShieldCheck, module: "controls" },
+  { href: "/dashboard/documents", label: "Documents", icon: FileText, module: "documents" },
+  { href: "/dashboard/actions", label: "Actions", icon: ListChecks, module: "actions" },
+  { href: "/dashboard/notifications", label: "Alertes", icon: Bell, module: "alerts" },
+  { href: "/dashboard/imports", label: "Imports", icon: UploadSimple, module: "imports" },
+  { href: "/dashboard/archives", label: "Archives", icon: Archive, module: "archives" },
+  { href: "/dashboard/rapports", label: "Rapports", icon: ChartBar, module: "reports" },
+  { href: "/dashboard/settings", label: "Paramètres", icon: GearSix, module: "settings" },
 ];
 
 export function Sidebar({
@@ -45,11 +48,13 @@ export function Sidebar({
   signOut,
 }: {
   fullName: string;
-  role: string;
+  role: UserRole;
   signOut: () => void;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const roleLabel = USER_ROLE_LABELS[role] ?? role;
+  const nav = NAV.filter((item) => canAccessModule(role, item.module));
 
   const isActive = (href: string) =>
     href === "/dashboard" ? pathname === href : pathname.startsWith(href);
@@ -90,8 +95,8 @@ export function Sidebar({
         </div>
 
         {/* Navigation */}
-        <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
-          {NAV.map(({ href, label, icon: Icon }) => {
+        <nav data-tour="nav" className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
+          {nav.map(({ href, label, icon: Icon }) => {
             const active = isActive(href);
             return (
               <Link
@@ -121,7 +126,7 @@ export function Sidebar({
             </span>
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-medium text-sidebar-heading">{fullName}</div>
-              <div className="truncate text-xs text-sidebar-foreground">{role}</div>
+              <div className="truncate text-xs text-sidebar-foreground">{roleLabel}</div>
             </div>
             <form action={signOut}>
               <button

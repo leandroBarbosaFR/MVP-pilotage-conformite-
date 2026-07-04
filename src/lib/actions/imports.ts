@@ -71,8 +71,8 @@ function buildRecord(
         title: val(row, "title"),
         category: val(row, "category") ?? "autre",
         due_date: val(row, "due_date"),
-        priority: val(row, "priority") ?? "moyen",
-        status: "a_jour",
+        priority: val(row, "priority") ?? "MEDIUM",
+        status: "COMPLIANT",
       };
   }
 }

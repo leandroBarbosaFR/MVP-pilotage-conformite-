@@ -158,7 +158,7 @@ function ObligationForm({ profiles }: { profiles: Profile[] }) {
       </div>
       <div>
         <Label>Priorité</Label>
-        <Select name="priority" defaultValue="moyen">
+        <Select name="priority" defaultValue="MEDIUM">
           {Object.entries(PRIORITY_LABELS).map(([v, l]) => (
             <option key={v} value={v}>{l}</option>
           ))}
@@ -166,7 +166,7 @@ function ObligationForm({ profiles }: { profiles: Profile[] }) {
       </div>
       <div>
         <Label>Statut</Label>
-        <Select name="status" defaultValue="a_jour">
+        <Select name="status" defaultValue="COMPLIANT">
           {Object.entries(OBLIGATION_STATUS_LABELS).map(([v, l]) => (
             <option key={v} value={v}>{l}</option>
           ))}

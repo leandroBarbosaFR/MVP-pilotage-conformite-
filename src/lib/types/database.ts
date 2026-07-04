@@ -1,6 +1,25 @@
 // Types métier — reflètent le schéma Supabase (supabase/migrations/0001_init.sql)
 
-export type UserRole = "ADMIN_COMPANY" | "SUPERVISOR" | "RESPONSIBLE" | "VIEWER";
+export type UserRole =
+  | "ADMIN"
+  | "QHSE_MANAGER"
+  | "HR_MANAGER"
+  | "MAINTENANCE_MANAGER"
+  | "FLEET_MANAGER"
+  | "OPERATIONS_MANAGER"
+  | "SUPERVISOR"
+  | "USER";
+
+export type NotificationType =
+  | "DUE_SOON"
+  | "EXPIRED"
+  | "MISSING_DOCUMENT"
+  | "ACTION_ASSIGNED"
+  | "ACTION_LATE"
+  | "DOCUMENT_ADDED"
+  | "COMMENT_ADDED"
+  | "CONTROL_TO_PLAN"
+  | "SUPERVISOR_ALERT";
 
 export type ObligationCategory =
   | "vehicule"
@@ -20,11 +39,27 @@ export type ObligationFrequency =
   | "annuelle"
   | "personnalisee";
 
-export type PriorityLevel = "faible" | "moyen" | "critique";
+export type PriorityLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
-export type ObligationStatus = "a_jour" | "bientot_expire" | "expire" | "archive";
+// Statut de conformité (ex-obligation_status), aligné sur l'enum compliance_status
+export type ObligationStatus =
+  | "COMPLIANT"
+  | "TO_WATCH"
+  | "EXPIRING_SOON"
+  | "EXPIRED"
+  | "MISSING_DOCUMENT"
+  | "LATE"
+  | "ARCHIVED";
 
-export type ActionStatus = "a_faire" | "en_cours" | "termine" | "en_retard" | "archive";
+export type ActionStatus =
+  | "TODO"
+  | "IN_PROGRESS"
+  | "PLANNED"
+  | "WAITING"
+  | "DONE"
+  | "LATE"
+  | "CANCELLED"
+  | "ARCHIVED";
 
 export type ImportStatus = "en_attente" | "traite" | "echoue";
 
@@ -42,13 +77,15 @@ export interface Company {
 
 export interface Profile {
   id: string;
-  user_id: string;
+  user_id: string | null;
   company_id: string;
   first_name: string | null;
   last_name: string | null;
   email: string | null;
   role: UserRole;
+  job_title: string | null;
   phone: string | null;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -144,6 +181,8 @@ export interface DocumentRow extends ArchivableRow {
   employee_id: string | null;
   equipment_id: string | null;
   epi_id: string | null;
+  responsible_id: string | null;
+  supervisor_id: string | null;
   uploaded_by: string | null;
 }
 
@@ -152,13 +191,20 @@ export interface ActionRow extends ArchivableRow {
   company_id: string;
   title: string;
   description: string | null;
+  category: string | null;
+  related_entity_type: string | null;
+  related_entity_id: string | null;
   status: ActionStatus;
   priority: PriorityLevel;
   due_date: string | null;
-  responsible_id: string | null;
+  assigned_to: string | null;
   supervisor_id: string | null;
   obligation_id: string | null;
   comment: string | null;
+  completed_at: string | null;
+  completed_by: string | null;
+  created_by: string | null;
+  archive_reason: string | null;
 }
 
 export interface Notification {
@@ -167,11 +213,27 @@ export interface Notification {
   user_id: string | null;
   title: string;
   message: string | null;
-  type: string | null;
+  type: NotificationType | null;
+  priority: PriorityLevel | null;
+  related_entity_type: string | null;
+  related_entity_id: string | null;
   obligation_id: string | null;
   action_id: string | null;
   is_read: boolean;
+  read_at: string | null;
   created_at: string;
+}
+
+export interface NotificationSettings {
+  id: string;
+  tenant_id: string;
+  alert_days_before_due: number;
+  notify_responsible: boolean;
+  notify_supervisor: boolean;
+  notify_admin: boolean;
+  email_enabled: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ImportRow {

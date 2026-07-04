@@ -37,7 +37,7 @@ export async function getOverdueActions(companyId: string): Promise<ActionRow[]>
     .select("*")
     .eq("company_id", companyId)
     .eq("is_archived", false)
-    .neq("status", "termine")
+    .neq("status", "DONE")
     .lt("due_date", today)
     .order("due_date", { ascending: true })
     .limit(10);
@@ -98,7 +98,7 @@ export async function getPendingActions(companyId: string): Promise<ActionRow[]>
     .select("*")
     .eq("company_id", companyId)
     .eq("is_archived", false)
-    .neq("status", "termine")
+    .neq("status", "DONE")
     .order("due_date", { ascending: true, nullsFirst: false })
     .limit(6);
   return (data as ActionRow[]) ?? [];

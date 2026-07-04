@@ -1,0 +1,266 @@
+// Jeu de données de démonstration en mémoire (mode démo).
+// Les tableaux sont mutables : les écritures de démo (créer/modifier) persistent
+// pendant la durée de vie du process serveur.
+
+import { DEMO_COMPANY_ID, DEMO_USER_ID } from "@/lib/demo";
+
+function iso(daysOffset: number): string {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + daysOffset);
+  return d.toISOString().slice(0, 10);
+}
+const NOW = new Date().toISOString();
+
+type Row = Record<string, unknown>;
+
+const archivable = { is_archived: false, archived_at: null, archived_by: null, created_at: NOW, updated_at: NOW };
+
+export const company: Row = {
+  id: DEMO_COMPANY_ID,
+  name: "TransPilot Demo",
+  sector: "Transport / Logistique",
+  employee_count: "100 à 250",
+  created_at: NOW,
+  updated_at: NOW,
+};
+
+// --- Profils (utilisateurs + membres invités) -------------------------
+export const profiles: Row[] = [
+  { id: "p-admin", user_id: DEMO_USER_ID, first_name: "Emma", last_name: "Admin", email: "emma.admin@transpilot-demo.fr", role: "ADMIN", job_title: "Direction", phone: "06 00 00 00 01", is_active: true },
+  { id: "p-qhse", user_id: null, first_name: "Claire", last_name: "QHSE", email: "claire.qhse@transpilot-demo.fr", role: "QHSE_MANAGER", job_title: "Responsable QHSE", phone: "06 00 00 00 02", is_active: true },
+  { id: "p-maint", user_id: null, first_name: "Marc", last_name: "Maintenance", email: "marc.maintenance@transpilot-demo.fr", role: "MAINTENANCE_MANAGER", job_title: "Responsable maintenance", phone: "06 00 00 00 03", is_active: true },
+  { id: "p-rh", user_id: null, first_name: "Sophie", last_name: "RH", email: "sophie.rh@transpilot-demo.fr", role: "HR_MANAGER", job_title: "Responsable RH", phone: "06 00 00 00 04", is_active: true },
+  { id: "p-parc", user_id: null, first_name: "Julien", last_name: "Parc", email: "julien.parc@transpilot-demo.fr", role: "FLEET_MANAGER", job_title: "Responsable parc", phone: "06 00 00 00 05", is_active: true },
+  { id: "p-expl", user_id: null, first_name: "Nadia", last_name: "Exploitation", email: "nadia.exploitation@transpilot-demo.fr", role: "OPERATIONS_MANAGER", job_title: "Responsable exploitation", phone: "06 00 00 00 06", is_active: true },
+  { id: "p-sup", user_id: null, first_name: "Paul", last_name: "Superviseur", email: "paul.superviseur@transpilot-demo.fr", role: "SUPERVISOR", job_title: "Superviseur", phone: "06 00 00 00 07", is_active: true },
+  { id: "p-user", user_id: null, first_name: "Utilisateur", last_name: "Démo", email: "user.demo@transpilot-demo.fr", role: "USER", job_title: "Opérateur", phone: "06 00 00 00 08", is_active: false },
+].map((p) => ({ ...p, company_id: DEMO_COMPANY_ID, created_at: NOW, updated_at: NOW }));
+
+const C = DEMO_COMPANY_ID;
+
+// --- Salariés ----------------------------------------------------------
+const EMP_FIRST = ["Marc", "Julie", "Karim", "Sophie", "Paul", "Nadia", "Éric", "Lucas"];
+const EMP_LAST = ["Durand", "Petit", "Benali", "Moreau", "Girard", "Haddad", "Lefevre", "Roy"];
+const EMP_JOB = ["Conducteur PL", "Conductrice PL", "Cariste", "Exploitation", "Conducteur SPL", "Magasinier", "Conducteur PL", "Mécanicien"];
+export const employees: Row[] = EMP_FIRST.map((f, i) => ({
+  id: `emp-${i + 1}`,
+  company_id: C,
+  first_name: f,
+  last_name: EMP_LAST[i],
+  job_title: EMP_JOB[i],
+  email: `salarie${i + 1}@transpilot-demo.fr`,
+  phone: `06 12 34 5${i} 0${i}`,
+  status: "actif",
+  responsible_id: "p-rh",
+  supervisor_id: "p-qhse",
+  ...archivable,
+}));
+
+// --- EPI ---------------------------------------------------------------
+const EPI_TYPE = ["Casque", "Harnais", "Chaussures de sécurité", "Détecteur de gaz", "Gants", "Lunettes", "Protections auditives", "Casque"];
+const EPI_RENEW = [-20, 10, 25, 90, 180, -5, 45, 300];
+export const epi: Row[] = EPI_TYPE.map((t, i) => ({
+  id: `epi-${i + 1}`,
+  company_id: C,
+  epi_type: t,
+  internal_reference: `EPI-${String(i + 1).padStart(4, "0")}`,
+  assigned_employee_id: `emp-${i + 1}`,
+  issue_date: iso(-(i + 1) * 40),
+  renewal_date: iso(EPI_RENEW[i]),
+  status: "actif",
+  responsible_id: "p-qhse",
+  supervisor_id: "p-qhse",
+  ...archivable,
+}));
+
+// --- Équipements -------------------------------------------------------
+const EQ_NAME = ["Hayon élévateur", "Chariot élévateur CH-12", "Pont roulant", "Compresseur", "Groupe froid", "Transpalette"];
+const EQ_TYPE = ["Levage", "Manutention", "Levage", "Pneumatique", "Froid", "Manutention"];
+const EQ_SITE = ["Dépôt Nord", "Dépôt Sud", "Atelier", "Atelier", "Dépôt Nord", "Quai 3"];
+export const equipments: Row[] = EQ_NAME.map((n, i) => ({
+  id: `eqp-${i + 1}`,
+  company_id: C,
+  name: n,
+  equipment_type: EQ_TYPE[i],
+  site: EQ_SITE[i],
+  internal_reference: `EQ-${String(i + 1).padStart(4, "0")}`,
+  status: "actif",
+  responsible_id: "p-maint",
+  supervisor_id: "p-qhse",
+  ...archivable,
+}));
+
+// --- Véhicules ---------------------------------------------------------
+const V_TYPE = ["Poids lourd", "Utilitaire", "Tracteur routier", "Fourgon"];
+const V_BRAND = ["Renault", "Volvo", "MAN", "Iveco", "Mercedes"];
+export const vehicles: Row[] = Array.from({ length: 10 }, (_, k) => {
+  const i = k + 1;
+  return {
+    id: `veh-${i}`,
+    company_id: C,
+    registration_number: i === 1 ? "AB-123-CD" : `AA-${String(i).padStart(3, "0")}-BB`,
+    vehicle_type: V_TYPE[i % 4],
+    brand: V_BRAND[i % 5],
+    model: `Série ${i}`,
+    service_date: iso(-i * 130),
+    status: i % 3 === 2 ? "maintenance" : "actif",
+    responsible_id: "p-parc",
+    supervisor_id: "p-expl",
+    ...archivable,
+  };
+});
+
+// --- Obligations (contrôles réglementaires) ----------------------------
+const OBL_TITLES = [
+  "Contrôle technique", "Assurance véhicule", "Tachygraphe", "Extincteur véhicule",
+  "Visite médicale", "Renouvellement permis", "FIMO", "Vérification levage",
+  "Contrôle réglementaire équipement", "Audit interne QHSE", "Habilitation électrique",
+  "Formation ADR", "Contrôle extincteurs site", "Carte conducteur",
+];
+const OBL_CAT = ["vehicule", "vehicule", "vehicule", "vehicule", "conducteur", "conducteur", "conducteur", "equipement", "equipement", "audit", "formation", "formation", "site", "conducteur"];
+const OBL_DUE = [-40, -10, 5, 12, 25, 60, 120, -3, 18, 200, -6, 40, 8, 75];
+const FREQ = ["annuelle", "annuelle", "semestrielle", "trimestrielle", "unique"];
+const PRIO = ["LOW", "MEDIUM", "CRITICAL"];
+function compliance(days: number): string {
+  if (days < 0) return "EXPIRED";
+  if (days <= 30) return "EXPIRING_SOON";
+  return "COMPLIANT";
+}
+export const obligations: Row[] = OBL_TITLES.map((t, k) => {
+  const i = k + 1;
+  const due = OBL_DUE[k];
+  return {
+    id: `obl-${i}`,
+    company_id: C,
+    title: t,
+    category: OBL_CAT[k],
+    description: "Obligation de conformité à suivre — échéance de référence.",
+    due_date: iso(due),
+    frequency: FREQ[i % 5],
+    priority: PRIO[i % 3],
+    status: compliance(due),
+    responsible_id: i % 5 === 0 ? null : "p-qhse",
+    supervisor_id: "p-qhse",
+    linked_vehicle_id: i % 3 === 0 ? `veh-${1 + (i % 10)}` : null,
+    linked_employee_id: i % 3 === 1 ? `emp-${1 + (i % 8)}` : null,
+    linked_equipment_id: i % 3 === 2 ? `eqp-${1 + (i % 6)}` : null,
+    comments: null,
+    ...archivable,
+  };
+});
+
+// --- Documents ---------------------------------------------------------
+const DOC_TITLE = ["CT_2025.pdf", "Attestation_assurance.pdf", "Carte_tachy.pdf", "Certificat_extincteur.pdf", "Visite_medicale.pdf", "Permis.pdf", "FIMO.pdf", "Rapport_levage.pdf", "PV_controle.pdf", "Registre.pdf"];
+const DOC_TYPE = ["Contrôle", "Assurance", "Carte", "Certificat", "Médical", "Permis", "Formation", "Rapport", "PV", "Registre"];
+const DOC_EXP = [-30, -5, 90, 180, -15, 45, 300, 20, -2, 150];
+export const documents: Row[] = DOC_TITLE.map((t, k) => {
+  const i = k + 1;
+  const exp = DOC_EXP[k];
+  return {
+    id: `doc-${i}`,
+    company_id: C,
+    title: t,
+    document_type: DOC_TYPE[k],
+    file_url: null,
+    file_path: null,
+    expiration_date: iso(exp),
+    status: exp < 0 ? "EXPIRED" : "COMPLIANT",
+    obligation_id: `obl-${i}`,
+    vehicle_id: i % 2 === 0 ? `veh-${1 + (i % 10)}` : null,
+    employee_id: null,
+    equipment_id: null,
+    epi_id: i % 3 === 0 ? `epi-${1 + (i % 8)}` : null,
+    responsible_id: "p-qhse",
+    supervisor_id: "p-qhse",
+    uploaded_by: "p-admin",
+    ...archivable,
+  };
+});
+
+// --- Actions -----------------------------------------------------------
+export const actions: Row[] = [
+  { title: "Renouveler habilitation électrique - 4 salariés", category: "RH", status: "TODO", priority: "CRITICAL", due: 0, assigned_to: "p-rh", supervisor_id: "p-qhse", obligation_id: "obl-11" },
+  { title: "Contrôle chariot élévateur CH-12", category: "Maintenance", status: "TODO", priority: "CRITICAL", due: 3, assigned_to: "p-maint", supervisor_id: "p-qhse", obligation_id: "obl-9" },
+  { title: "Ajouter rapport extincteurs atelier", category: "Maintenance", status: "PLANNED", priority: "HIGH", due: 15, assigned_to: "p-maint", supervisor_id: "p-qhse", obligation_id: "obl-13" },
+  { title: "Vérifier assurance véhicule AB-123-CD", category: "Parc", status: "TODO", priority: "HIGH", due: 10, assigned_to: "p-parc", supervisor_id: "p-expl", obligation_id: "obl-2" },
+  { title: "Planifier visite médecine du travail", category: "RH", status: "PLANNED", priority: "MEDIUM", due: 21, assigned_to: "p-rh", supervisor_id: "p-qhse", obligation_id: "obl-5" },
+  { title: "Contrôler un extincteur", category: "Maintenance", status: "IN_PROGRESS", priority: "MEDIUM", due: 5, assigned_to: "p-maint", supervisor_id: "p-qhse", obligation_id: "obl-4" },
+  { title: "Relancer le prestataire de contrôle", category: "QHSE", status: "LATE", priority: "HIGH", due: -12, assigned_to: "p-qhse", supervisor_id: "p-admin", obligation_id: "obl-1" },
+  { title: "Mettre à jour la carte conducteur", category: "RH", status: "TODO", priority: "MEDIUM", due: -2, assigned_to: "p-rh", supervisor_id: "p-qhse", obligation_id: "obl-14" },
+  { title: "Archiver un ancien PV", category: "QHSE", status: "DONE", priority: "LOW", due: -20, assigned_to: "p-qhse", supervisor_id: "p-admin", obligation_id: "obl-10" },
+].map((a, k) => ({
+  id: `act-${k + 1}`,
+  company_id: C,
+  title: a.title,
+  description: "Tâche à réaliser pour rester conforme.",
+  category: a.category,
+  related_entity_type: null,
+  related_entity_id: null,
+  status: a.status,
+  priority: a.priority,
+  due_date: iso(a.due),
+  assigned_to: a.assigned_to,
+  supervisor_id: a.supervisor_id,
+  obligation_id: a.obligation_id,
+  comment: null,
+  completed_at: a.status === "DONE" ? NOW : null,
+  completed_by: a.status === "DONE" ? "p-qhse" : null,
+  created_by: "p-admin",
+  archive_reason: null,
+  ...archivable,
+}));
+
+// --- Notifications -----------------------------------------------------
+const NOTIF = [
+  { title: "Visite médicale à planifier", type: "DUE_SOON", priority: "MEDIUM", rid: "obl-5", rt: "obligation" },
+  { title: "Contrôle machine à réaliser", type: "CONTROL_TO_PLAN", priority: "HIGH", rid: "obl-9", rt: "obligation" },
+  { title: "Document expiré", type: "EXPIRED", priority: "CRITICAL", rid: "doc-1", rt: "document" },
+  { title: "Permis bientôt expiré", type: "DUE_SOON", priority: "MEDIUM", rid: "obl-6", rt: "obligation" },
+  { title: "Preuve manquante", type: "MISSING_DOCUMENT", priority: "HIGH", rid: "obl-11", rt: "obligation" },
+  { title: "Action en retard", type: "ACTION_LATE", priority: "CRITICAL", rid: "act-7", rt: "action" },
+];
+export const notifications: Row[] = NOTIF.map((n, k) => ({
+  id: `ntf-${k + 1}`,
+  company_id: C,
+  user_id: "p-admin",
+  title: n.title,
+  message: "Échéance ou action nécessitant votre attention.",
+  type: n.type,
+  priority: n.priority,
+  related_entity_type: n.rt,
+  related_entity_id: n.rid,
+  obligation_id: n.rt === "obligation" ? n.rid : null,
+  action_id: n.rt === "action" ? n.rid : null,
+  is_read: k > 4,
+  read_at: null,
+  created_at: NOW,
+}));
+
+// --- Réglages notifications & imports ----------------------------------
+export const notification_settings: Row[] = [
+  { id: "ns-1", tenant_id: C, alert_days_before_due: 30, notify_responsible: true, notify_supervisor: true, notify_admin: false, email_enabled: false, created_at: NOW, updated_at: NOW },
+];
+
+export const imports: Row[] = [
+  { id: "imp-1", company_id: C, file_name: "vehicules_2025.xlsx", file_url: null, import_type: "vehicles", status: "traite", total_rows: 10, imported_rows: 10, failed_rows: 0, error_log: null, uploaded_by: "p-admin", created_at: NOW },
+  { id: "imp-2", company_id: C, file_name: "salaries.csv", file_url: null, import_type: "employees", status: "traite", total_rows: 8, imported_rows: 7, failed_rows: 1, error_log: null, uploaded_by: "p-admin", created_at: NOW },
+];
+
+// Registre des tables pour le client mock
+export const TABLES: Record<string, Row[]> = {
+  companies: [company],
+  profiles,
+  employees,
+  epi,
+  equipments,
+  vehicles,
+  obligations,
+  documents,
+  actions,
+  notifications,
+  notification_settings,
+  imports,
+  audit_logs: [],
+  pilot_leads: [],
+};

@@ -46,8 +46,8 @@ export async function createObligation(formData: FormData) {
     description: s(formData.get("description")),
     due_date: s(formData.get("due_date")),
     frequency: s(formData.get("frequency")) ?? "unique",
-    priority: s(formData.get("priority")) ?? "moyen",
-    status: s(formData.get("status")) ?? "a_jour",
+    priority: s(formData.get("priority")) ?? "MEDIUM",
+    status: s(formData.get("status")) ?? "COMPLIANT",
     responsible_id: s(formData.get("responsible_id")),
     supervisor_id: s(formData.get("supervisor_id")),
     linked_vehicle_id: s(formData.get("linked_vehicle_id")),
@@ -60,28 +60,38 @@ export async function createObligation(formData: FormData) {
 }
 
 export async function createAction(formData: FormData) {
-  const { company } = await requireContext();
+  const { company, profile } = await requireContext();
   const supabase = await createClient();
   await supabase.from("actions").insert({
     company_id: company.id,
     title: s(formData.get("title")) ?? "Sans titre",
     description: s(formData.get("description")),
-    status: s(formData.get("status")) ?? "a_faire",
-    priority: s(formData.get("priority")) ?? "moyen",
+    category: s(formData.get("category")),
+    status: s(formData.get("status")) ?? "TODO",
+    priority: s(formData.get("priority")) ?? "MEDIUM",
     due_date: s(formData.get("due_date")),
-    responsible_id: s(formData.get("responsible_id")),
+    assigned_to: s(formData.get("assigned_to")),
     supervisor_id: s(formData.get("supervisor_id")),
     obligation_id: s(formData.get("obligation_id")),
     comment: s(formData.get("comment")),
+    created_by: profile.id,
   });
   revalidatePath("/dashboard/actions");
   revalidatePath("/dashboard");
 }
 
 export async function updateActionStatus(id: string, status: string) {
-  await requireContext();
+  const { profile } = await requireContext();
   const supabase = await createClient();
-  await supabase.from("actions").update({ status }).eq("id", id);
+  const done = status === "DONE";
+  await supabase
+    .from("actions")
+    .update({
+      status,
+      completed_at: done ? new Date().toISOString() : null,
+      completed_by: done ? profile.id : null,
+    })
+    .eq("id", id);
   revalidatePath("/dashboard/actions");
   revalidatePath(`/dashboard/actions/${id}`);
   revalidatePath("/dashboard");
@@ -171,7 +181,7 @@ export async function createDocument(input: {
   const { company, profile } = await requireContext();
   const supabase = await createClient();
   const status =
-    input.expiration_date && new Date(input.expiration_date) < new Date() ? "expire" : "a_jour";
+    input.expiration_date && new Date(input.expiration_date) < new Date() ? "EXPIRED" : "COMPLIANT";
   await supabase.from("documents").insert({
     company_id: company.id,
     title: input.title,

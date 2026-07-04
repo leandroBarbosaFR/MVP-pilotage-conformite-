@@ -4,6 +4,7 @@
 -- 1) Exécutez ce fichier une fois dans le SQL Editor Supabase.
 -- 2) Connectez-vous à l'app puis Paramètres > "Charger les données de démo"
 --    (ou appelez select public.load_demo_data(); en étant authentifié).
+-- Nécessite les migrations 0001, 0002 et 0003.
 -- =====================================================================
 
 create or replace function public.load_demo_data()
@@ -25,7 +26,10 @@ declare
   qid  uuid;
   oid  uuid;
   d    date;
-  st   obligation_status;
+  st   compliance_status;
+  -- Équipe de démonstration (membres invités, sans compte de connexion)
+  p_admin uuid; p_qhse uuid; p_maint uuid; p_rh uuid;
+  p_parc uuid; p_expl uuid; p_sup uuid; p_user uuid;
 begin
   if v_company is null then
     return 'Aucune entreprise associée à cet utilisateur.';
@@ -43,6 +47,31 @@ begin
          employee_count = '100 à 250'
    where id = v_company;
 
+  -- L'utilisateur courant devient ADMIN de la démo
+  update public.profiles set role = 'ADMIN' where id = v_profile;
+
+  -- Équipe de démonstration (profils sans user_id : membres invités)
+  insert into public.profiles (company_id, first_name, last_name, email, role, job_title, is_active) values
+    (v_company,'Emma','Admin','emma.admin@transpilot-demo.fr','ADMIN','Direction',true) returning id into p_admin;
+  insert into public.profiles (company_id, first_name, last_name, email, role, job_title, is_active) values
+    (v_company,'Claire','QHSE','claire.qhse@transpilot-demo.fr','QHSE_MANAGER','Responsable QHSE',true) returning id into p_qhse;
+  insert into public.profiles (company_id, first_name, last_name, email, role, job_title, is_active) values
+    (v_company,'Marc','Maintenance','marc.maintenance@transpilot-demo.fr','MAINTENANCE_MANAGER','Responsable maintenance',true) returning id into p_maint;
+  insert into public.profiles (company_id, first_name, last_name, email, role, job_title, is_active) values
+    (v_company,'Sophie','RH','sophie.rh@transpilot-demo.fr','HR_MANAGER','Responsable RH',true) returning id into p_rh;
+  insert into public.profiles (company_id, first_name, last_name, email, role, job_title, is_active) values
+    (v_company,'Julien','Parc','julien.parc@transpilot-demo.fr','FLEET_MANAGER','Responsable parc',true) returning id into p_parc;
+  insert into public.profiles (company_id, first_name, last_name, email, role, job_title, is_active) values
+    (v_company,'Nadia','Exploitation','nadia.exploitation@transpilot-demo.fr','OPERATIONS_MANAGER','Responsable exploitation',true) returning id into p_expl;
+  insert into public.profiles (company_id, first_name, last_name, email, role, job_title, is_active) values
+    (v_company,'Paul','Superviseur','paul.superviseur@transpilot-demo.fr','SUPERVISOR','Superviseur',true) returning id into p_sup;
+  insert into public.profiles (company_id, first_name, last_name, email, role, job_title, is_active) values
+    (v_company,'Utilisateur','Démo','user.demo@transpilot-demo.fr','USER','Opérateur',true) returning id into p_user;
+
+  -- Réglages de notifications par défaut pour le tenant
+  insert into public.notification_settings (tenant_id) values (v_company)
+    on conflict (tenant_id) do nothing;
+
   -- Véhicules (10)
   for i in 1..10 loop
     insert into public.vehicles (company_id, registration_number, vehicle_type, brand, model, service_date, status, responsible_id, supervisor_id)
@@ -54,7 +83,7 @@ begin
       'Série ' || i,
       current_date - (i * 130),
       (array['actif','actif','maintenance'])[1 + (i % 3)],
-      v_profile, v_profile
+      p_parc, p_expl
     ) returning id into vid;
     veh := array_append(veh, vid);
   end loop;
@@ -69,7 +98,7 @@ begin
       (array['Conducteur PL','Conductrice PL','Cariste','Exploitation','Conducteur SPL','Magasinier','Conducteur PL','Mécanicien'])[i],
       'salarie' || i || '@transpilot-demo.fr',
       '06 00 00 00 0' || i,
-      'actif', v_profile, v_profile
+      'actif', p_rh, p_qhse
     ) returning id into eid;
     emp := array_append(emp, eid);
   end loop;
@@ -83,7 +112,7 @@ begin
       (array['Levage','Manutention','Levage','Pneumatique','Froid','Manutention'])[i],
       (array['Dépôt Nord','Dépôt Sud','Atelier','Atelier','Dépôt Nord','Quai 3'])[i],
       'EQ-' || lpad(i::text, 4, '0'),
-      'actif', v_profile, v_profile
+      'actif', p_maint, p_qhse
     ) returning id into qid;
     eqp := array_append(eqp, qid);
   end loop;
@@ -98,16 +127,16 @@ begin
       emp[i],
       current_date - (i * 40),
       current_date + (array[-20,10,25,90,180,-5,45,300])[i],
-      'actif', v_profile, v_profile
+      'actif', p_qhse, p_qhse
     );
   end loop;
 
   -- Obligations (20) — échéances et statuts variés
   for i in 1..20 loop
     d := current_date + (array[-40,-10,5,12,25,60,120,-3,18,200])[1 + (i % 10)];
-    if d < current_date then st := 'expire';
-    elsif d <= current_date + 30 then st := 'bientot_expire';
-    else st := 'a_jour';
+    if d < current_date then st := 'EXPIRED';
+    elsif d <= current_date + 30 then st := 'EXPIRING_SOON';
+    else st := 'COMPLIANT';
     end if;
 
     insert into public.obligations (company_id, title, category, description, due_date, frequency, priority, status, responsible_id, supervisor_id, linked_vehicle_id, linked_employee_id, linked_equipment_id)
@@ -124,10 +153,10 @@ begin
       'Obligation de conformité à suivre — échéance de référence.',
       d,
       (array['annuelle','annuelle','semestrielle','trimestrielle','unique'])[1 + (i % 5)],
-      (array['faible','moyen','critique'])[1 + (i % 3)],
+      (array['LOW','MEDIUM','CRITICAL'])[1 + (i % 3)]::priority_level,
       st,
-      case when i % 5 = 0 then null else v_profile end, -- quelques obligations sans responsable
-      v_profile,
+      case when i % 5 = 0 then null else p_qhse end, -- quelques obligations sans responsable
+      p_qhse,
       case when i % 3 = 0 then veh[1 + (i % array_length(veh, 1))] end,
       case when i % 3 = 1 then emp[1 + (i % array_length(emp, 1))] end,
       case when i % 3 = 2 then eqp[1 + (i % array_length(eqp, 1))] end
@@ -137,22 +166,23 @@ begin
 
   -- Documents (10) — certains expirés, certains manquants (obligations sans doc)
   for i in 1..10 loop
-    insert into public.documents (company_id, title, document_type, expiration_date, status, obligation_id, vehicle_id, uploaded_by)
+    insert into public.documents (company_id, title, document_type, expiration_date, status, obligation_id, vehicle_id, responsible_id, supervisor_id, uploaded_by)
     values (
       v_company,
       (array['CT_2025.pdf','Attestation_assurance.pdf','Carte_tachy.pdf','Certificat_extincteur.pdf','Visite_medicale.pdf','Permis.pdf','FIMO.pdf','Rapport_levage.pdf','PV_controle.pdf','Registre.pdf'])[i],
       (array['Contrôle','Assurance','Carte','Certificat','Médical','Permis','Formation','Rapport','PV','Registre'])[i],
       current_date + (array[-30,-5,90,180,-15,45,300,20,-2,150])[i],
-      case when (array[-30,-5,90,180,-15,45,300,20,-2,150])[i] < 0 then 'expire' else 'a_jour' end,
+      case when (array[-30,-5,90,180,-15,45,300,20,-2,150])[i] < 0 then 'EXPIRED' else 'COMPLIANT' end,
       obs[i],
       case when i % 2 = 0 then veh[1 + (i % array_length(veh, 1))] end,
+      p_qhse, p_qhse,
       v_profile
     );
   end loop;
 
-  -- Actions (15) — statuts variés dont en retard
+  -- Actions génériques (15) — statuts variés dont en retard
   for i in 1..15 loop
-    insert into public.actions (company_id, title, description, status, priority, due_date, responsible_id, supervisor_id, obligation_id)
+    insert into public.actions (company_id, title, description, status, priority, due_date, assigned_to, supervisor_id, obligation_id, created_by)
     values (
       v_company,
       (array[
@@ -163,27 +193,36 @@ begin
         'Audit interne à préparer','Remplacer un EPI','Archiver un ancien PV'
       ])[i],
       'Tâche à réaliser pour rester conforme.',
-      (array['en_retard','a_faire','en_cours','termine','a_faire'])[1 + (i % 5)],
-      (array['faible','moyen','critique'])[1 + (i % 3)],
+      (array['LATE','TODO','IN_PROGRESS','DONE','TODO'])[1 + (i % 5)]::action_status,
+      (array['LOW','MEDIUM','CRITICAL'])[1 + (i % 3)]::priority_level,
       current_date + (array[-12,-2,3,10,30,-20,45])[1 + (i % 7)],
-      v_profile, v_profile,
-      obs[1 + (i % array_length(obs, 1))]
+      p_maint, p_qhse,
+      obs[1 + (i % array_length(obs, 1))],
+      v_profile
     );
   end loop;
 
+  -- Actions d'exemple ciblées (responsables / superviseurs métier)
+  insert into public.actions (company_id, title, category, description, status, priority, due_date, assigned_to, supervisor_id, created_by) values
+    (v_company,'Renouveler habilitation électrique - 4 salariés','RH','Habilitations à renouveler avant échéance.','TODO','CRITICAL',current_date,        p_rh,   p_qhse, v_profile),
+    (v_company,'Contrôle chariot élévateur CH-12','Maintenance','Vérification réglementaire du chariot élévateur.','TODO','CRITICAL',current_date + 3, p_maint,p_qhse, v_profile),
+    (v_company,'Ajouter rapport extincteurs atelier','Maintenance','Téléverser le rapport de contrôle des extincteurs.','PLANNED','HIGH',current_date + 15, p_maint,p_qhse, v_profile),
+    (v_company,'Vérifier assurance véhicule AB-123-CD','Parc','Contrôler la validité de l''assurance du véhicule.','TODO','HIGH',current_date + 10,   p_parc, p_expl, v_profile),
+    (v_company,'Planifier visite médecine du travail','RH','Programmer les visites médicales à venir.','PLANNED','MEDIUM',current_date + 21,      p_rh,   p_qhse, v_profile);
+
   -- Notifications (6)
   for i in 1..6 loop
-    insert into public.notifications (company_id, user_id, title, message, type, obligation_id, is_read)
+    insert into public.notifications (company_id, user_id, title, message, type, priority, is_read)
     values (
       v_company, v_profile,
       (array['Visite médicale à planifier','Contrôle machine à réaliser','Document expiré','Permis bientôt expiré','Preuve manquante','Action en retard'])[i],
       'Échéance ou action nécessitant votre attention.',
-      (array['echeance','echeance','document','echeance','document','action'])[i],
-      obs[i],
+      (array['DUE_SOON','CONTROL_TO_PLAN','EXPIRED','DUE_SOON','MISSING_DOCUMENT','ACTION_LATE'])[i]::notification_type,
+      (array['MEDIUM','HIGH','CRITICAL','MEDIUM','HIGH','CRITICAL'])[i]::priority_level,
       (i > 4)
     );
   end loop;
 
-  return 'Données de démonstration chargées : 10 véhicules, 8 conducteurs, 6 équipements, 8 EPI, 20 obligations, 10 documents, 15 actions, 6 notifications.';
+  return 'Données de démonstration chargées : 8 membres d''équipe, 10 véhicules, 8 conducteurs, 6 équipements, 8 EPI, 20 obligations, 10 documents, 20 actions, 6 notifications.';
 end;
 $$;
