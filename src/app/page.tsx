@@ -51,7 +51,7 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5">
           <span className="flex items-center gap-2 text-base font-semibold tracking-tight">
             <ShieldCheckIcon size={22} weight="fill" className="text-accent" />
-            Conformité PME
+            Comformity
           </span>
           <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
             <Link href="#fonctionnement" className="hover:text-foreground">Fonctionnement</Link>
@@ -214,9 +214,9 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-8 text-xs text-muted-foreground sm:flex-row">
           <span className="flex items-center gap-2">
             <ShieldCheckIcon size={14} weight="fill" className="text-accent" />
-            Conformité PME — pilotage de conformité pour PME industrielles, transport et logistique.
+            Comformity — pilotage de conformité pour PME industrielles, transport et logistique.
           </span>
-          <span>© {new Date().getFullYear()} Conformité PME</span>
+          <span>© {new Date().getFullYear()} Comformity</span>
         </div>
       </footer>
     </div>

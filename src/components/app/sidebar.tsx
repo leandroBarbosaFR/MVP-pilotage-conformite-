@@ -164,7 +164,7 @@ export function Sidebar({
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-sidebar-border bg-sidebar/90 px-4 py-3 text-sidebar-heading backdrop-blur md:hidden">
         <span className="flex items-center gap-2 text-sm font-semibold">
           <ShieldCheck size={18} weight="fill" className="text-accent" />
-          Conformité PME
+          Comformity
         </span>
         <button aria-label="Menu" onClick={() => setOpen((v) => !v)} className="p-1">
           {open ? <X size={20} /> : <ListIcon size={20} />}
@@ -173,7 +173,7 @@ export function Sidebar({
 
       <aside
         className={cn(
-          "z-20 shrink-0 bg-sidebar text-sidebar-foreground",
+          "relative z-20 shrink-0 bg-sidebar text-sidebar-foreground",
           "md:sticky md:top-0 md:flex md:h-screen md:flex-col",
           "md:transition-[width] md:duration-300 md:ease-in-out motion-reduce:md:transition-none",
           collapsed ? "md:w-16" : "md:w-64",
@@ -185,7 +185,7 @@ export function Sidebar({
           {!collapsed ? (
             <span className="flex items-center gap-2 px-2 text-base font-semibold tracking-tight text-sidebar-heading">
               <ShieldCheck size={22} weight="fill" className="text-accent" aria-hidden />
-              Conformité PME
+              Comformity
             </span>
           ) : null}
           <button
@@ -229,7 +229,7 @@ export function Sidebar({
         </nav>
 
         {/* Utilisateur */}
-        <div className="sticky bottom-0 border-t border-sidebar-border bg-sidebar/80 p-3 backdrop-blur">
+        <div className="border-t border-sidebar-border bg-sidebar/80 p-3 md:sticky md:bottom-0 md:backdrop-blur">
           <div className={cn("flex items-center gap-3 rounded-md px-2 py-2", collapsed && "justify-center px-0")}>
             <span
               title={collapsed ? `${fullName} — ${roleLabel}` : undefined}
