@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { requireContext } from "@/lib/queries/auth";
 import { getSites, getProfiles } from "@/lib/queries/entities";
 import { createSite } from "@/lib/actions/entities";
@@ -9,7 +8,7 @@ import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
-import { Table, THead, TR, TH, TD, EmptyRow } from "@/components/ui/table";
+import { ListView } from "@/components/app/list-view";
 import { SITE_TYPES } from "@/types/enums";
 import type { Profile } from "@/lib/types/database";
 
@@ -50,43 +49,27 @@ export default async function SitesPage({
 
       <ListToolbar basePath="/dashboard/sites" search={sp.q} includeArchived={includeArchived} />
 
-      <Table>
-        <THead>
-          <TR>
-            <TH>Nom</TH>
-            <TH>Type</TH>
-            <TH>Ville</TH>
-            <TH>Responsable</TH>
-            <TH>Statut</TH>
-            <TH className="text-right">Actions</TH>
-          </TR>
-        </THead>
-        <tbody>
-          {rows.length === 0 ? (
-            <EmptyRow colSpan={6} message="Aucun site." />
-          ) : (
-            rows.map((s) => (
-              <TR key={s.id}>
-                <TD className="font-medium">
-                  <Link href={`/dashboard/sites/${s.id}`} className="hover:underline">{s.name}</Link>
-                </TD>
-                <TD>{s.site_type ?? "—"}</TD>
-                <TD>{s.city ?? "—"}</TD>
-                <TD>{profName(s.manager_id)}</TD>
-                <TD>{s.status}</TD>
-                <TD>
-                  <div className="flex justify-end gap-2">
-                    <Link href={`/dashboard/sites/${s.id}`}>
-                      <Button variant="outline" size="sm">Détail</Button>
-                    </Link>
-                    <ArchiveButton table="sites" id={s.id} archived={s.is_archived} />
-                  </div>
-                </TD>
-              </TR>
-            ))
-          )}
-        </tbody>
-      </Table>
+      <ListView
+        rows={rows}
+        getKey={(s) => s.id}
+        href={(s) => `/dashboard/sites/${s.id}`}
+        empty="Aucun site."
+        columns={[
+          { header: "Nom", cell: (s) => <span className="font-medium">{s.name}</span> },
+          { header: "Type", cell: (s) => s.site_type ?? "—" },
+          { header: "Ville", cell: (s) => s.city ?? "—" },
+          { header: "Responsable", cell: (s) => profName(s.manager_id) },
+          { header: "Statut", cell: (s) => s.status },
+        ]}
+        card={(s) => ({
+          title: s.name,
+          fields: [
+            { label: "Type", value: s.site_type ?? "—" },
+            { label: "Ville", value: s.city ?? "—" },
+          ],
+        })}
+        actions={(s) => <ArchiveButton table="sites" id={s.id} archived={s.is_archived} />}
+      />
 
       <Pagination basePath="/dashboard/sites" page={page} count={count} pageSize={PAGE_SIZE} params={{ q: sp.q, archived: sp.archived }} />
     </div>

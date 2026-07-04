@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { requireContext } from "@/lib/queries/auth";
 import { getEmployees, getProfiles } from "@/lib/queries/entities";
 import { createEmployee } from "@/lib/actions/entities";
@@ -9,7 +8,7 @@ import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
-import { Table, THead, TR, TH, TD, EmptyRow } from "@/components/ui/table";
+import { ListView } from "@/components/app/list-view";
 import type { Profile } from "@/lib/types/database";
 
 const PAGE_SIZE = 20;
@@ -48,45 +47,27 @@ export default async function EmployeesPage({
 
       <ListToolbar basePath="/dashboard/employees" search={sp.q} includeArchived={includeArchived} />
 
-      <Table>
-        <THead>
-          <TR>
-            <TH>Nom</TH>
-            <TH>Poste</TH>
-            <TH>Email</TH>
-            <TH>Téléphone</TH>
-            <TH>Statut</TH>
-            <TH className="text-right">Actions</TH>
-          </TR>
-        </THead>
-        <tbody>
-          {rows.length === 0 ? (
-            <EmptyRow colSpan={6} message="Aucun salarié." />
-          ) : (
-            rows.map((e) => (
-              <TR key={e.id}>
-                <TD className="font-medium">
-                  <Link href={`/dashboard/employees/${e.id}`} className="hover:underline">
-                    {[e.last_name, e.first_name].filter(Boolean).join(" ")}
-                  </Link>
-                </TD>
-                <TD>{e.job_title}</TD>
-                <TD>{e.email}</TD>
-                <TD>{e.phone}</TD>
-                <TD>{e.status}</TD>
-                <TD>
-                  <div className="flex justify-end gap-2">
-                    <Link href={`/dashboard/employees/${e.id}`}>
-                      <Button variant="outline" size="sm">Détail</Button>
-                    </Link>
-                    <ArchiveButton table="employees" id={e.id} archived={e.is_archived} />
-                  </div>
-                </TD>
-              </TR>
-            ))
-          )}
-        </tbody>
-      </Table>
+      <ListView
+        rows={rows}
+        getKey={(e) => e.id}
+        href={(e) => `/dashboard/employees/${e.id}`}
+        empty="Aucun salarié."
+        columns={[
+          { header: "Nom", cell: (e) => <span className="font-medium">{[e.last_name, e.first_name].filter(Boolean).join(" ")}</span> },
+          { header: "Poste", cell: (e) => e.job_title ?? "—" },
+          { header: "Email", cell: (e) => e.email ?? "—" },
+          { header: "Téléphone", cell: (e) => e.phone ?? "—" },
+          { header: "Statut", cell: (e) => e.status },
+        ]}
+        card={(e) => ({
+          title: [e.last_name, e.first_name].filter(Boolean).join(" "),
+          fields: [
+            { label: "Poste", value: e.job_title ?? "—" },
+            { label: "Statut", value: e.status },
+          ],
+        })}
+        actions={(e) => <ArchiveButton table="employees" id={e.id} archived={e.is_archived} />}
+      />
 
       <Pagination
         basePath="/dashboard/employees"

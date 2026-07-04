@@ -8,7 +8,7 @@ import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
-import { Table, THead, TR, TH, TD, EmptyRow } from "@/components/ui/table";
+import { ListView } from "@/components/app/list-view";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { NC_SOURCE_TYPES, NC_STATUS_LABELS, NC_STATUS_TONE } from "@/types/enums";
 import { PRIORITY_LABELS } from "@/lib/status";
@@ -61,42 +61,27 @@ export default async function NonConformitiesPage({
         </div>
       </ListToolbar>
 
-      <Table>
-        <THead>
-          <TR>
-            <TH>Titre</TH>
-            <TH>Source</TH>
-            <TH>Détectée le</TH>
-            <TH>Gravité</TH>
-            <TH>Statut</TH>
-            <TH className="text-right">Actions</TH>
-          </TR>
-        </THead>
-        <tbody>
-          {rows.length === 0 ? (
-            <EmptyRow colSpan={6} message="Aucune non-conformité." />
-          ) : (
-            rows.map((n) => (
-              <TR key={n.id}>
-                <TD className="font-medium">{n.title}</TD>
-                <TD>{n.source_type ?? "—"}</TD>
-                <TD>{formatDate(n.detected_at)}</TD>
-                <TD>
-                  <StatusBadge status={SEV_TONE[n.severity] ?? "none"} label={PRIORITY_LABELS[n.severity] ?? n.severity} />
-                </TD>
-                <TD>
-                  <StatusBadge status={(NC_STATUS_TONE[n.status] ?? "none") as ComplianceStatus} label={NC_STATUS_LABELS[n.status] ?? n.status} />
-                </TD>
-                <TD>
-                  <div className="flex justify-end gap-2">
-                    <ArchiveButton table="non_conformities" id={n.id} archived={n.is_archived} />
-                  </div>
-                </TD>
-              </TR>
-            ))
-          )}
-        </tbody>
-      </Table>
+      <ListView
+        rows={rows}
+        getKey={(n) => n.id}
+        empty="Aucune non-conformité."
+        columns={[
+          { header: "Titre", cell: (n) => <span className="font-medium">{n.title}</span> },
+          { header: "Source", cell: (n) => n.source_type ?? "—" },
+          { header: "Détectée le", cell: (n) => formatDate(n.detected_at) },
+          { header: "Gravité", cell: (n) => <StatusBadge status={SEV_TONE[n.severity] ?? "none"} label={PRIORITY_LABELS[n.severity] ?? n.severity} /> },
+          { header: "Statut", cell: (n) => <StatusBadge status={(NC_STATUS_TONE[n.status] ?? "none") as ComplianceStatus} label={NC_STATUS_LABELS[n.status] ?? n.status} /> },
+        ]}
+        card={(n) => ({
+          title: n.title,
+          badge: <StatusBadge status={(NC_STATUS_TONE[n.status] ?? "none") as ComplianceStatus} label={NC_STATUS_LABELS[n.status] ?? n.status} />,
+          fields: [
+            { label: "Gravité", value: PRIORITY_LABELS[n.severity] ?? n.severity },
+            { label: "Détectée le", value: formatDate(n.detected_at) },
+          ],
+        })}
+        actions={(n) => <ArchiveButton table="non_conformities" id={n.id} archived={n.is_archived} />}
+      />
 
       <Pagination basePath="/dashboard/non-conformities" page={page} count={count} pageSize={PAGE_SIZE} params={{ q: sp.q, status: sp.status, archived: sp.archived }} />
     </div>

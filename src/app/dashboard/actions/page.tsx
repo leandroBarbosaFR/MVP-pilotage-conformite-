@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { requireContext } from "@/lib/queries/auth";
 import { getActions, getObligations, getProfiles } from "@/lib/queries/entities";
 import { createAction } from "@/lib/actions/entities";
@@ -9,7 +8,7 @@ import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
-import { Table, THead, TR, TH, TD, EmptyRow } from "@/components/ui/table";
+import { ListView } from "@/components/app/list-view";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   ACTION_STATUS_LABELS,
@@ -72,49 +71,29 @@ export default async function ActionsPage({
         </div>
       </ListToolbar>
 
-      <Table>
-        <THead>
-          <TR>
-            <TH>Titre</TH>
-            <TH>Assigné à</TH>
-            <TH>Superviseur</TH>
-            <TH>Priorité</TH>
-            <TH>Échéance</TH>
-            <TH>Statut</TH>
-            <TH className="text-right">Actions</TH>
-          </TR>
-        </THead>
-        <tbody>
-          {rows.length === 0 ? (
-            <EmptyRow colSpan={7} message="Aucune action." />
-          ) : (
-            rows.map((a) => (
-              <TR key={a.id}>
-                <TD className="font-medium">
-                  <Link href={`/dashboard/actions/${a.id}`} className="hover:underline">
-                    {a.title}
-                  </Link>
-                </TD>
-                <TD>{nameOf(a.assigned_to)}</TD>
-                <TD>{nameOf(a.supervisor_id)}</TD>
-                <TD>{PRIORITY_LABELS[a.priority]}</TD>
-                <TD>{formatDate(a.due_date)}</TD>
-                <TD>
-                  <StatusBadge status={complianceFromActionStatus(a.status)} label={ACTION_STATUS_LABELS[a.status]} />
-                </TD>
-                <TD>
-                  <div className="flex justify-end gap-2">
-                    <Link href={`/dashboard/actions/${a.id}`}>
-                      <Button variant="outline" size="sm">Détail</Button>
-                    </Link>
-                    <ArchiveButton table="actions" id={a.id} archived={a.is_archived} />
-                  </div>
-                </TD>
-              </TR>
-            ))
-          )}
-        </tbody>
-      </Table>
+      <ListView
+        rows={rows}
+        getKey={(a) => a.id}
+        href={(a) => `/dashboard/actions/${a.id}`}
+        empty="Aucune action."
+        columns={[
+          { header: "Titre", cell: (a) => <span className="font-medium">{a.title}</span> },
+          { header: "Assigné à", cell: (a) => nameOf(a.assigned_to) },
+          { header: "Superviseur", cell: (a) => nameOf(a.supervisor_id) },
+          { header: "Priorité", cell: (a) => PRIORITY_LABELS[a.priority] },
+          { header: "Échéance", cell: (a) => formatDate(a.due_date) },
+          { header: "Statut", cell: (a) => <StatusBadge status={complianceFromActionStatus(a.status)} label={ACTION_STATUS_LABELS[a.status]} /> },
+        ]}
+        card={(a) => ({
+          title: a.title,
+          badge: <StatusBadge status={complianceFromActionStatus(a.status)} label={ACTION_STATUS_LABELS[a.status]} />,
+          fields: [
+            { label: "Assigné à", value: nameOf(a.assigned_to) },
+            { label: "Échéance", value: formatDate(a.due_date) },
+          ],
+        })}
+        actions={(a) => <ArchiveButton table="actions" id={a.id} archived={a.is_archived} />}
+      />
 
       <Pagination
         basePath="/dashboard/actions"

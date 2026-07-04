@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { requireContext } from "@/lib/queries/auth";
 import { getEpis, getEmployees, getEmployeeNames, getProfiles } from "@/lib/queries/entities";
 import { createEpi } from "@/lib/actions/entities";
@@ -9,7 +8,7 @@ import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
-import { Table, THead, TR, TH, TD, EmptyRow } from "@/components/ui/table";
+import { ListView } from "@/components/app/list-view";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { statusFromDate, STATUS_LABELS, EPI_TYPES } from "@/lib/status";
 import { formatDate } from "@/lib/utils";
@@ -48,52 +47,29 @@ export default async function EpiPage({
 
       <ListToolbar basePath="/dashboard/epi" search={sp.q} includeArchived={includeArchived} />
 
-      <Table>
-        <THead>
-          <TR>
-            <TH>Type</TH>
-            <TH>Référence</TH>
-            <TH>Assigné à</TH>
-            <TH>Date de remise</TH>
-            <TH>Renouvellement</TH>
-            <TH>Statut</TH>
-            <TH className="text-right">Actions</TH>
-          </TR>
-        </THead>
-        <tbody>
-          {rows.length === 0 ? (
-            <EmptyRow colSpan={7} message="Aucun EPI." />
-          ) : (
-            rows.map((e) => (
-              <TR key={e.id}>
-                <TD className="font-medium">
-                  <Link href={`/dashboard/epi/${e.id}`} className="hover:underline">
-                    {e.epi_type}
-                  </Link>
-                </TD>
-                <TD>{e.internal_reference ?? "—"}</TD>
-                <TD>{e.assigned_employee_id ? names.get(e.assigned_employee_id) ?? "—" : "—"}</TD>
-                <TD>{formatDate(e.issue_date)}</TD>
-                <TD>{formatDate(e.renewal_date)}</TD>
-                <TD>
-                  <StatusBadge
-                    status={statusFromDate(e.renewal_date)}
-                    label={STATUS_LABELS[statusFromDate(e.renewal_date)]}
-                  />
-                </TD>
-                <TD>
-                  <div className="flex justify-end gap-2">
-                    <Link href={`/dashboard/epi/${e.id}`}>
-                      <Button variant="outline" size="sm">Détail</Button>
-                    </Link>
-                    <ArchiveButton table="epi" id={e.id} archived={e.is_archived} />
-                  </div>
-                </TD>
-              </TR>
-            ))
-          )}
-        </tbody>
-      </Table>
+      <ListView
+        rows={rows}
+        getKey={(e) => e.id}
+        href={(e) => `/dashboard/epi/${e.id}`}
+        empty="Aucun EPI."
+        columns={[
+          { header: "Type", cell: (e) => <span className="font-medium">{e.epi_type}</span> },
+          { header: "Référence", cell: (e) => e.internal_reference ?? "—" },
+          { header: "Assigné à", cell: (e) => e.assigned_employee_id ? names.get(e.assigned_employee_id) ?? "—" : "—" },
+          { header: "Date de remise", cell: (e) => formatDate(e.issue_date) },
+          { header: "Renouvellement", cell: (e) => formatDate(e.renewal_date) },
+          { header: "Statut", cell: (e) => <StatusBadge status={statusFromDate(e.renewal_date)} label={STATUS_LABELS[statusFromDate(e.renewal_date)]} /> },
+        ]}
+        card={(e) => ({
+          title: e.epi_type,
+          badge: <StatusBadge status={statusFromDate(e.renewal_date)} label={STATUS_LABELS[statusFromDate(e.renewal_date)]} />,
+          fields: [
+            { label: "Référence", value: e.internal_reference ?? "—" },
+            { label: "Renouvellement", value: formatDate(e.renewal_date) },
+          ],
+        })}
+        actions={(e) => <ArchiveButton table="epi" id={e.id} archived={e.is_archived} />}
+      />
 
       <Pagination
         basePath="/dashboard/epi"

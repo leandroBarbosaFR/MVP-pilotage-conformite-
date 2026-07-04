@@ -8,7 +8,7 @@ import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
-import { Table, THead, TR, TH, TD, EmptyRow } from "@/components/ui/table";
+import { ListView } from "@/components/app/list-view";
 import { PROVIDER_TYPES } from "@/types/enums";
 
 const PAGE_SIZE = 20;
@@ -39,38 +39,26 @@ export default async function ProvidersPage({
 
       <ListToolbar basePath="/dashboard/providers" search={sp.q} includeArchived={includeArchived} />
 
-      <Table>
-        <THead>
-          <TR>
-            <TH>Nom</TH>
-            <TH>Type</TH>
-            <TH>Contact</TH>
-            <TH>Email</TH>
-            <TH>Téléphone</TH>
-            <TH className="text-right">Actions</TH>
-          </TR>
-        </THead>
-        <tbody>
-          {rows.length === 0 ? (
-            <EmptyRow colSpan={6} message="Aucun prestataire." />
-          ) : (
-            rows.map((p) => (
-              <TR key={p.id}>
-                <TD className="font-medium">{p.name}</TD>
-                <TD>{p.provider_type ?? "—"}</TD>
-                <TD>{p.contact_name ?? "—"}</TD>
-                <TD>{p.email ?? "—"}</TD>
-                <TD>{p.phone ?? "—"}</TD>
-                <TD>
-                  <div className="flex justify-end gap-2">
-                    <ArchiveButton table="providers" id={p.id} archived={p.is_archived} />
-                  </div>
-                </TD>
-              </TR>
-            ))
-          )}
-        </tbody>
-      </Table>
+      <ListView
+        rows={rows}
+        getKey={(p) => p.id}
+        empty="Aucun prestataire."
+        columns={[
+          { header: "Nom", cell: (p) => <span className="font-medium">{p.name}</span> },
+          { header: "Type", cell: (p) => p.provider_type ?? "—" },
+          { header: "Contact", cell: (p) => p.contact_name ?? "—" },
+          { header: "Email", cell: (p) => p.email ?? "—" },
+          { header: "Téléphone", cell: (p) => p.phone ?? "—" },
+        ]}
+        card={(p) => ({
+          title: p.name,
+          fields: [
+            { label: "Type", value: p.provider_type ?? "—" },
+            { label: "Contact", value: p.contact_name ?? "—" },
+          ],
+        })}
+        actions={(p) => <ArchiveButton table="providers" id={p.id} archived={p.is_archived} />}
+      />
 
       <Pagination basePath="/dashboard/providers" page={page} count={count} pageSize={PAGE_SIZE} params={{ q: sp.q, archived: sp.archived }} />
     </div>

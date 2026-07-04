@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { requireContext } from "@/lib/queries/auth";
 import {
   getObligations,
@@ -15,7 +14,7 @@ import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
-import { Table, THead, TR, TH, TD, EmptyRow } from "@/components/ui/table";
+import { ListView } from "@/components/app/list-view";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   CATEGORY_LABELS,
@@ -24,8 +23,8 @@ import {
   PRIORITY_LABELS,
   complianceFromObligationStatus,
 } from "@/lib/status";
-import { MODULE_LABELS, RELATED_ENTITY_LABELS } from "@/types/enums";
-import type { ObligationModule, RelatedEntityType } from "@/lib/types/database";
+import { MODULE_LABELS } from "@/types/enums";
+import type { ObligationModule } from "@/lib/types/database";
 import { formatDate } from "@/lib/utils";
 import type { Profile } from "@/lib/types/database";
 
@@ -108,68 +107,30 @@ export default async function ObligationsPage({
         </div>
       </ListToolbar>
 
-      <Table>
-        <THead>
-          <TR>
-            <TH>Titre</TH>
-            <TH>Module</TH>
-            <TH>Entité liée</TH>
-            <TH>Responsable</TH>
-            <TH>Échéance</TH>
-            <TH>Priorité</TH>
-            <TH>Statut</TH>
-            <TH className="text-right">Actions</TH>
-          </TR>
-        </THead>
-        <tbody>
-          {rows.length === 0 ? (
-            <EmptyRow colSpan={8} message="Aucune obligation." />
-          ) : (
-            rows.map((o) => (
-              <TR key={o.id}>
-                <TD className="font-medium">
-                  <Link href={`/dashboard/obligations/${o.id}`} className="hover:underline">
-                    {o.title}
-                  </Link>
-                </TD>
-                <TD>
-                  <span className="rounded-md border border-border px-2 py-0.5 text-xs text-muted-foreground">
-                    {MODULE_LABELS[o.module as ObligationModule] ?? o.module}
-                  </span>
-                </TD>
-                <TD>
-                  {o.related_entity_id ? (
-                    <span>
-                      {entMap.get(o.related_entity_id) ?? "—"}
-                      {o.related_entity_type ? (
-                        <span className="ml-1 text-xs text-muted-foreground">
-                          ({RELATED_ENTITY_LABELS[o.related_entity_type as RelatedEntityType]})
-                        </span>
-                      ) : null}
-                    </span>
-                  ) : (
-                    "—"
-                  )}
-                </TD>
-                <TD>{profName(o.responsible_id)}</TD>
-                <TD>{formatDate(o.due_date)}</TD>
-                <TD>{PRIORITY_LABELS[o.priority]}</TD>
-                <TD>
-                  <StatusBadge status={complianceFromObligationStatus(o.status)} label={OBLIGATION_STATUS_LABELS[o.status]} />
-                </TD>
-                <TD>
-                  <div className="flex justify-end gap-2">
-                    <Link href={`/dashboard/obligations/${o.id}`}>
-                      <Button variant="outline" size="sm">Détail</Button>
-                    </Link>
-                    <ArchiveButton table="obligations" id={o.id} archived={o.is_archived} />
-                  </div>
-                </TD>
-              </TR>
-            ))
-          )}
-        </tbody>
-      </Table>
+      <ListView
+        rows={rows}
+        getKey={(o) => o.id}
+        href={(o) => `/dashboard/obligations/${o.id}`}
+        empty="Aucune obligation."
+        columns={[
+          { header: "Titre", cell: (o) => <span className="font-medium">{o.title}</span> },
+          { header: "Module", cell: (o) => <span className="rounded-md border border-border px-2 py-0.5 text-xs text-muted-foreground">{MODULE_LABELS[o.module as ObligationModule] ?? o.module}</span> },
+          { header: "Entité liée", cell: (o) => o.related_entity_id ? (entMap.get(o.related_entity_id) ?? "—") : "—" },
+          { header: "Responsable", cell: (o) => profName(o.responsible_id) },
+          { header: "Échéance", cell: (o) => formatDate(o.due_date) },
+          { header: "Priorité", cell: (o) => PRIORITY_LABELS[o.priority] },
+          { header: "Statut", cell: (o) => <StatusBadge status={complianceFromObligationStatus(o.status)} label={OBLIGATION_STATUS_LABELS[o.status]} /> },
+        ]}
+        card={(o) => ({
+          title: o.title,
+          badge: <StatusBadge status={complianceFromObligationStatus(o.status)} label={OBLIGATION_STATUS_LABELS[o.status]} />,
+          fields: [
+            { label: "Module", value: MODULE_LABELS[o.module as ObligationModule] ?? o.module },
+            { label: "Échéance", value: formatDate(o.due_date) },
+          ],
+        })}
+        actions={(o) => <ArchiveButton table="obligations" id={o.id} archived={o.is_archived} />}
+      />
 
       <Pagination
         basePath="/dashboard/obligations"

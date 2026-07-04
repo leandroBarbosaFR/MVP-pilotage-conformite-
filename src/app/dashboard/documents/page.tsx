@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { requireContext } from "@/lib/queries/auth";
 import { getDocuments } from "@/lib/queries/entities";
 import { PageHeader } from "@/components/app/page-header";
@@ -7,7 +6,7 @@ import { ListToolbar } from "@/components/app/list-toolbar";
 import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { Button } from "@/components/ui/button";
-import { Table, THead, TR, TH, TD, EmptyRow } from "@/components/ui/table";
+import { ListView } from "@/components/app/list-view";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { UploadDocument } from "@/components/documents/upload-document";
 import { statusFromDate } from "@/lib/status";
@@ -46,52 +45,36 @@ export default async function DocumentsPage({
 
       <ListToolbar basePath="/dashboard/documents" search={sp.q} includeArchived={includeArchived} />
 
-      <Table>
-        <THead>
-          <TR>
-            <TH>Titre</TH>
-            <TH>Type</TH>
-            <TH>Expiration</TH>
-            <TH>Ajouté le</TH>
-            <TH className="text-right">Actions</TH>
-          </TR>
-        </THead>
-        <tbody>
-          {rows.length === 0 ? (
-            <EmptyRow colSpan={5} message="Aucun document." />
-          ) : (
-            rows.map((d) => (
-              <TR key={d.id}>
-                <TD className="font-medium">
-                  <Link href={`/dashboard/documents/${d.id}`} className="hover:underline">
-                    {d.title}
-                  </Link>
-                </TD>
-                <TD>{d.document_type ?? "—"}</TD>
-                <TD>
-                  <div className="flex items-center gap-2">
-                    <span>{formatDate(d.expiration_date)}</span>
-                    <StatusBadge status={statusFromDate(d.expiration_date)} />
-                  </div>
-                </TD>
-                <TD>{formatDate(d.created_at)}</TD>
-                <TD>
-                  <div className="flex justify-end gap-2">
-                    {d.file_url ? (
-                      <a href={d.file_url} target="_blank" rel="noopener noreferrer">
-                        <Button variant="outline" size="sm">
-                          Ouvrir
-                        </Button>
-                      </a>
-                    ) : null}
-                    <ArchiveButton table="documents" id={d.id} archived={d.is_archived} />
-                  </div>
-                </TD>
-              </TR>
-            ))
-          )}
-        </tbody>
-      </Table>
+      <ListView
+        rows={rows}
+        getKey={(d) => d.id}
+        href={(d) => `/dashboard/documents/${d.id}`}
+        empty="Aucun document."
+        columns={[
+          { header: "Titre", cell: (d) => <span className="font-medium">{d.title}</span> },
+          { header: "Type", cell: (d) => d.document_type ?? "—" },
+          { header: "Expiration", cell: (d) => <span className="inline-flex items-center gap-2">{formatDate(d.expiration_date)}<StatusBadge status={statusFromDate(d.expiration_date)} /></span> },
+          { header: "Ajouté le", cell: (d) => formatDate(d.created_at) },
+        ]}
+        card={(d) => ({
+          title: d.title,
+          badge: <StatusBadge status={statusFromDate(d.expiration_date)} />,
+          fields: [
+            { label: "Type", value: d.document_type ?? "—" },
+            { label: "Expiration", value: formatDate(d.expiration_date) },
+          ],
+        })}
+        actions={(d) => (
+          <>
+            {d.file_url ? (
+              <a href={d.file_url} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm">Ouvrir</Button>
+              </a>
+            ) : null}
+            <ArchiveButton table="documents" id={d.id} archived={d.is_archived} />
+          </>
+        )}
+      />
 
       <Pagination
         basePath="/dashboard/documents"

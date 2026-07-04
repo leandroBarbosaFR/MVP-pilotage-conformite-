@@ -8,7 +8,7 @@ import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
-import { Table, THead, TR, TH, TD, EmptyRow } from "@/components/ui/table";
+import { ListView } from "@/components/app/list-view";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { AUDIT_TYPES, AUDIT_STATUS_LABELS, AUDIT_STATUS_TONE, AUDIT_RESULT_LABELS } from "@/types/enums";
 import { formatDate } from "@/lib/utils";
@@ -56,42 +56,28 @@ export default async function AuditsPage({
         </div>
       </ListToolbar>
 
-      <Table>
-        <THead>
-          <TR>
-            <TH>Titre</TH>
-            <TH>Type</TH>
-            <TH>Site</TH>
-            <TH>Date prévue</TH>
-            <TH>Résultat</TH>
-            <TH>Statut</TH>
-            <TH className="text-right">Actions</TH>
-          </TR>
-        </THead>
-        <tbody>
-          {rows.length === 0 ? (
-            <EmptyRow colSpan={7} message="Aucun audit." />
-          ) : (
-            rows.map((a) => (
-              <TR key={a.id}>
-                <TD className="font-medium">{a.title}</TD>
-                <TD>{a.audit_type ?? "—"}</TD>
-                <TD>{siteName(a.site_id)}</TD>
-                <TD>{formatDate(a.planned_date)}</TD>
-                <TD>{a.result ? AUDIT_RESULT_LABELS[a.result] ?? a.result : "—"}</TD>
-                <TD>
-                  <StatusBadge status={(AUDIT_STATUS_TONE[a.status] ?? "none") as ComplianceStatus} label={AUDIT_STATUS_LABELS[a.status] ?? a.status} />
-                </TD>
-                <TD>
-                  <div className="flex justify-end gap-2">
-                    <ArchiveButton table="audits" id={a.id} archived={a.is_archived} />
-                  </div>
-                </TD>
-              </TR>
-            ))
-          )}
-        </tbody>
-      </Table>
+      <ListView
+        rows={rows}
+        getKey={(a) => a.id}
+        empty="Aucun audit."
+        columns={[
+          { header: "Titre", cell: (a) => <span className="font-medium">{a.title}</span> },
+          { header: "Type", cell: (a) => a.audit_type ?? "—" },
+          { header: "Site", cell: (a) => siteName(a.site_id) },
+          { header: "Date prévue", cell: (a) => formatDate(a.planned_date) },
+          { header: "Résultat", cell: (a) => a.result ? (AUDIT_RESULT_LABELS[a.result] ?? a.result) : "—" },
+          { header: "Statut", cell: (a) => <StatusBadge status={(AUDIT_STATUS_TONE[a.status] ?? "none") as ComplianceStatus} label={AUDIT_STATUS_LABELS[a.status] ?? a.status} /> },
+        ]}
+        card={(a) => ({
+          title: a.title,
+          badge: <StatusBadge status={(AUDIT_STATUS_TONE[a.status] ?? "none") as ComplianceStatus} label={AUDIT_STATUS_LABELS[a.status] ?? a.status} />,
+          fields: [
+            { label: "Site", value: siteName(a.site_id) },
+            { label: "Date prévue", value: formatDate(a.planned_date) },
+          ],
+        })}
+        actions={(a) => <ArchiveButton table="audits" id={a.id} archived={a.is_archived} />}
+      />
 
       <Pagination basePath="/dashboard/audits" page={page} count={count} pageSize={PAGE_SIZE} params={{ q: sp.q, status: sp.status, archived: sp.archived }} />
     </div>

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { requireContext } from "@/lib/queries/auth";
 import { getEquipments, getProfiles } from "@/lib/queries/entities";
 import { createEquipment } from "@/lib/actions/entities";
@@ -9,7 +8,7 @@ import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
-import { Table, THead, TR, TH, TD, EmptyRow } from "@/components/ui/table";
+import { ListView } from "@/components/app/list-view";
 import type { Profile } from "@/lib/types/database";
 
 const PAGE_SIZE = 20;
@@ -48,45 +47,27 @@ export default async function EquipmentsPage({
 
       <ListToolbar basePath="/dashboard/equipments" search={sp.q} includeArchived={includeArchived} />
 
-      <Table>
-        <THead>
-          <TR>
-            <TH>Nom</TH>
-            <TH>Type</TH>
-            <TH>Site</TH>
-            <TH>Réf interne</TH>
-            <TH>Statut</TH>
-            <TH className="text-right">Actions</TH>
-          </TR>
-        </THead>
-        <tbody>
-          {rows.length === 0 ? (
-            <EmptyRow colSpan={6} message="Aucun équipement." />
-          ) : (
-            rows.map((e) => (
-              <TR key={e.id}>
-                <TD className="font-medium">
-                  <Link href={`/dashboard/equipments/${e.id}`} className="hover:underline">
-                    {e.name}
-                  </Link>
-                </TD>
-                <TD>{e.equipment_type}</TD>
-                <TD>{e.site}</TD>
-                <TD>{e.internal_reference}</TD>
-                <TD>{e.status}</TD>
-                <TD>
-                  <div className="flex justify-end gap-2">
-                    <Link href={`/dashboard/equipments/${e.id}`}>
-                      <Button variant="outline" size="sm">Détail</Button>
-                    </Link>
-                    <ArchiveButton table="equipments" id={e.id} archived={e.is_archived} />
-                  </div>
-                </TD>
-              </TR>
-            ))
-          )}
-        </tbody>
-      </Table>
+      <ListView
+        rows={rows}
+        getKey={(e) => e.id}
+        href={(e) => `/dashboard/equipments/${e.id}`}
+        empty="Aucun équipement."
+        columns={[
+          { header: "Nom", cell: (e) => <span className="font-medium">{e.name}</span> },
+          { header: "Type", cell: (e) => e.equipment_type ?? "—" },
+          { header: "Site", cell: (e) => e.site ?? "—" },
+          { header: "Réf interne", cell: (e) => e.internal_reference ?? "—" },
+          { header: "Statut", cell: (e) => e.status },
+        ]}
+        card={(e) => ({
+          title: e.name,
+          fields: [
+            { label: "Type", value: e.equipment_type ?? "—" },
+            { label: "Site", value: e.site ?? "—" },
+          ],
+        })}
+        actions={(e) => <ArchiveButton table="equipments" id={e.id} archived={e.is_archived} />}
+      />
 
       <Pagination
         basePath="/dashboard/equipments"

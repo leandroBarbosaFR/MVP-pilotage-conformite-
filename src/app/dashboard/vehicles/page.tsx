@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { requireContext } from "@/lib/queries/auth";
 import { getVehicles, getProfiles } from "@/lib/queries/entities";
 import { createVehicle } from "@/lib/actions/entities";
@@ -9,7 +8,7 @@ import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
-import { Table, THead, TR, TH, TD, EmptyRow } from "@/components/ui/table";
+import { ListView } from "@/components/app/list-view";
 import { formatDate } from "@/lib/utils";
 import type { Profile } from "@/lib/types/database";
 
@@ -49,47 +48,28 @@ export default async function VehiclesPage({
 
       <ListToolbar basePath="/dashboard/vehicles" search={sp.q} includeArchived={includeArchived} />
 
-      <Table>
-        <THead>
-          <TR>
-            <TH>Immatriculation</TH>
-            <TH>Type</TH>
-            <TH>Marque</TH>
-            <TH>Modèle</TH>
-            <TH>Mise en service</TH>
-            <TH>Statut</TH>
-            <TH className="text-right">Actions</TH>
-          </TR>
-        </THead>
-        <tbody>
-          {rows.length === 0 ? (
-            <EmptyRow colSpan={7} message="Aucun véhicule." />
-          ) : (
-            rows.map((v) => (
-              <TR key={v.id}>
-                <TD className="font-medium">
-                  <Link href={`/dashboard/vehicles/${v.id}`} className="hover:underline">
-                    {v.registration_number}
-                  </Link>
-                </TD>
-                <TD>{v.vehicle_type}</TD>
-                <TD>{v.brand}</TD>
-                <TD>{v.model}</TD>
-                <TD>{formatDate(v.service_date)}</TD>
-                <TD>{v.status}</TD>
-                <TD>
-                  <div className="flex justify-end gap-2">
-                    <Link href={`/dashboard/vehicles/${v.id}`}>
-                      <Button variant="outline" size="sm">Détail</Button>
-                    </Link>
-                    <ArchiveButton table="vehicles" id={v.id} archived={v.is_archived} />
-                  </div>
-                </TD>
-              </TR>
-            ))
-          )}
-        </tbody>
-      </Table>
+      <ListView
+        rows={rows}
+        getKey={(v) => v.id}
+        href={(v) => `/dashboard/vehicles/${v.id}`}
+        empty="Aucun véhicule."
+        columns={[
+          { header: "Immatriculation", cell: (v) => <span className="font-medium">{v.registration_number}</span> },
+          { header: "Type", cell: (v) => v.vehicle_type ?? "—" },
+          { header: "Marque", cell: (v) => v.brand ?? "—" },
+          { header: "Modèle", cell: (v) => v.model ?? "—" },
+          { header: "Mise en service", cell: (v) => formatDate(v.service_date) },
+          { header: "Statut", cell: (v) => v.status },
+        ]}
+        card={(v) => ({
+          title: v.registration_number,
+          fields: [
+            { label: "Type", value: v.vehicle_type ?? "—" },
+            { label: "Statut", value: v.status },
+          ],
+        })}
+        actions={(v) => <ArchiveButton table="vehicles" id={v.id} archived={v.is_archived} />}
+      />
 
       <Pagination
         basePath="/dashboard/vehicles"

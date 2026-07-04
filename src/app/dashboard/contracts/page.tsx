@@ -8,7 +8,7 @@ import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
-import { Table, THead, TR, TH, TD, EmptyRow } from "@/components/ui/table";
+import { ListView } from "@/components/app/list-view";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { CONTRACT_TYPES, CONTRACT_STATUS_LABELS, CONTRACT_STATUS_TONE } from "@/types/enums";
 import { formatDate } from "@/lib/utils";
@@ -56,40 +56,27 @@ export default async function ContractsPage({
         </div>
       </ListToolbar>
 
-      <Table>
-        <THead>
-          <TR>
-            <TH>Titre</TH>
-            <TH>Type</TH>
-            <TH>Prestataire</TH>
-            <TH>Renouvellement</TH>
-            <TH>Statut</TH>
-            <TH className="text-right">Actions</TH>
-          </TR>
-        </THead>
-        <tbody>
-          {rows.length === 0 ? (
-            <EmptyRow colSpan={6} message="Aucun contrat." />
-          ) : (
-            rows.map((c) => (
-              <TR key={c.id}>
-                <TD className="font-medium">{c.title}</TD>
-                <TD>{c.contract_type ?? "—"}</TD>
-                <TD>{provName(c.provider_id)}</TD>
-                <TD>{formatDate(c.renewal_date)}</TD>
-                <TD>
-                  <StatusBadge status={(CONTRACT_STATUS_TONE[c.status] ?? "none") as ComplianceStatus} label={CONTRACT_STATUS_LABELS[c.status] ?? c.status} />
-                </TD>
-                <TD>
-                  <div className="flex justify-end gap-2">
-                    <ArchiveButton table="contracts" id={c.id} archived={c.is_archived} />
-                  </div>
-                </TD>
-              </TR>
-            ))
-          )}
-        </tbody>
-      </Table>
+      <ListView
+        rows={rows}
+        getKey={(c) => c.id}
+        empty="Aucun contrat."
+        columns={[
+          { header: "Titre", cell: (c) => <span className="font-medium">{c.title}</span> },
+          { header: "Type", cell: (c) => c.contract_type ?? "—" },
+          { header: "Prestataire", cell: (c) => provName(c.provider_id) },
+          { header: "Renouvellement", cell: (c) => formatDate(c.renewal_date) },
+          { header: "Statut", cell: (c) => <StatusBadge status={(CONTRACT_STATUS_TONE[c.status] ?? "none") as ComplianceStatus} label={CONTRACT_STATUS_LABELS[c.status] ?? c.status} /> },
+        ]}
+        card={(c) => ({
+          title: c.title,
+          badge: <StatusBadge status={(CONTRACT_STATUS_TONE[c.status] ?? "none") as ComplianceStatus} label={CONTRACT_STATUS_LABELS[c.status] ?? c.status} />,
+          fields: [
+            { label: "Prestataire", value: provName(c.provider_id) },
+            { label: "Renouvellement", value: formatDate(c.renewal_date) },
+          ],
+        })}
+        actions={(c) => <ArchiveButton table="contracts" id={c.id} archived={c.is_archived} />}
+      />
 
       <Pagination basePath="/dashboard/contracts" page={page} count={count} pageSize={PAGE_SIZE} params={{ q: sp.q, status: sp.status, archived: sp.archived }} />
     </div>
