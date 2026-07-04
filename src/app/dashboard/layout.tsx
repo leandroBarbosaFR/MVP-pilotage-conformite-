@@ -1,5 +1,6 @@
 import { requireContext } from "@/lib/queries/auth";
 import { Sidebar } from "@/components/app/sidebar";
+import { DashboardTour } from "@/components/app/dashboard-tour";
 import { signOut } from "@/lib/actions/auth";
 import { DEMO_MODE } from "@/lib/demo";
 
@@ -17,8 +18,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
             Mode démonstration — données fictives, aucune connexion à la base
           </div>
         ) : null}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+        <main data-tour="page" className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
+      <DashboardTour />
     </div>
   );
 }

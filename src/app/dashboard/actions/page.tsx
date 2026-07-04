@@ -81,7 +81,7 @@ export default async function ActionsPage({
             <TH>Priorité</TH>
             <TH>Échéance</TH>
             <TH>Statut</TH>
-            <TH>Actions</TH>
+            <TH className="text-right">Actions</TH>
           </TR>
         </THead>
         <tbody>
@@ -103,7 +103,7 @@ export default async function ActionsPage({
                   <StatusBadge status={complianceFromActionStatus(a.status)} label={ACTION_STATUS_LABELS[a.status]} />
                 </TD>
                 <TD>
-                  <div className="flex gap-2">
+                  <div className="flex justify-end gap-2">
                     <Link href={`/dashboard/actions/${a.id}`}>
                       <Button variant="outline" size="sm">Détail</Button>
                     </Link>

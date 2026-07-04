@@ -58,7 +58,7 @@ export default async function VehiclesPage({
             <TH>Modèle</TH>
             <TH>Mise en service</TH>
             <TH>Statut</TH>
-            <TH>Actions</TH>
+            <TH className="text-right">Actions</TH>
           </TR>
         </THead>
         <tbody>
@@ -78,7 +78,7 @@ export default async function VehiclesPage({
                 <TD>{formatDate(v.service_date)}</TD>
                 <TD>{v.status}</TD>
                 <TD>
-                  <div className="flex gap-2">
+                  <div className="flex justify-end gap-2">
                     <Link href={`/dashboard/vehicles/${v.id}`}>
                       <Button variant="outline" size="sm">Détail</Button>
                     </Link>

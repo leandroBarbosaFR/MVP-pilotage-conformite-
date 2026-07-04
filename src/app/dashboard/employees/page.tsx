@@ -56,7 +56,7 @@ export default async function EmployeesPage({
             <TH>Email</TH>
             <TH>Téléphone</TH>
             <TH>Statut</TH>
-            <TH>Actions</TH>
+            <TH className="text-right">Actions</TH>
           </TR>
         </THead>
         <tbody>
@@ -75,7 +75,7 @@ export default async function EmployeesPage({
                 <TD>{e.phone}</TD>
                 <TD>{e.status}</TD>
                 <TD>
-                  <div className="flex gap-2">
+                  <div className="flex justify-end gap-2">
                     <Link href={`/dashboard/employees/${e.id}`}>
                       <Button variant="outline" size="sm">Détail</Button>
                     </Link>

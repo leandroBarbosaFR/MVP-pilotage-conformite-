@@ -5,6 +5,7 @@ import { markNotification } from "@/lib/actions/entities";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { NOTIFICATION_TYPE_LABELS, type NotificationType } from "@/types/enums";
 import type { Notification } from "@/lib/types/database";
 
 export function NotificationList({ items }: { items: Notification[] }) {
@@ -42,8 +43,8 @@ function NotificationRow({ notification }: { notification: Notification }) {
             {notification.title}
           </span>
           {notification.type ? (
-            <span className="rounded-sm border border-border px-1.5 py-0.5 text-xs text-muted-foreground">
-              {notification.type}
+            <span className="rounded-md border border-border px-1.5 py-0.5 text-xs text-muted-foreground">
+              {NOTIFICATION_TYPE_LABELS[notification.type as NotificationType] ?? notification.type}
             </span>
           ) : null}
         </div>

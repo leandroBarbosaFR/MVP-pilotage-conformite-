@@ -53,7 +53,7 @@ export default async function DocumentsPage({
             <TH>Type</TH>
             <TH>Expiration</TH>
             <TH>Ajouté le</TH>
-            <TH>Actions</TH>
+            <TH className="text-right">Actions</TH>
           </TR>
         </THead>
         <tbody>
@@ -76,7 +76,7 @@ export default async function DocumentsPage({
                 </TD>
                 <TD>{formatDate(d.created_at)}</TD>
                 <TD>
-                  <div className="flex gap-2">
+                  <div className="flex justify-end gap-2">
                     {d.file_url ? (
                       <a href={d.file_url} target="_blank" rel="noopener noreferrer">
                         <Button variant="outline" size="sm">

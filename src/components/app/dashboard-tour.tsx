@@ -17,6 +17,14 @@ const STEPS: DriveStep[] = [
     },
   },
   {
+    element: "[data-tour='page']",
+    popover: {
+      title: "Contenu de la page",
+      description:
+        "Chaque module présente ses données ici : recherche, filtres, tableaux et fiche détaillée.",
+    },
+  },
+  {
     element: "[data-tour='stats']",
     popover: {
       title: "Indicateurs clés",

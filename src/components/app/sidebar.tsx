@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import {
   SquaresFourIcon as SquaresFour,
   UsersIcon as Users,
@@ -20,20 +20,24 @@ import {
   ListIcon,
   XIcon as X,
   SignOutIcon as SignOut,
+  SidebarSimpleIcon as SidebarToggle,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 import { canAccessModule, type AppModule } from "@/lib/permissions";
 import { USER_ROLE_LABELS } from "@/types/enums";
 import type { UserRole } from "@/lib/types/database";
 
-const NAV: { href: string; label: string; icon: typeof SquaresFour; module: AppModule }[] = [
+type NavItem = { href: string; label: string; icon: typeof SquaresFour; module: AppModule; divider?: boolean };
+
+const NAV: NavItem[] = [
   { href: "/dashboard", label: "Tableau de bord", icon: SquaresFour, module: "dashboard" },
   { href: "/dashboard/employees", label: "Personnel", icon: Users, module: "personnel" },
   { href: "/dashboard/epi", label: "EPI", icon: HardHat, module: "epi" },
   { href: "/dashboard/equipments", label: "Machines et équipements", icon: Gear, module: "equipments" },
   { href: "/dashboard/vehicles", label: "Véhicules", icon: Truck, module: "vehicles" },
   { href: "/dashboard/obligations", label: "Contrôles réglementaires", icon: ShieldCheck, module: "controls" },
-  { href: "/dashboard/documents", label: "Documents", icon: FileText, module: "documents" },
+  // Séparateur orange : modules transverses (documents, suivi, admin)
+  { href: "/dashboard/documents", label: "Documents", icon: FileText, module: "documents", divider: true },
   { href: "/dashboard/actions", label: "Actions", icon: ListChecks, module: "actions" },
   { href: "/dashboard/notifications", label: "Alertes", icon: Bell, module: "alerts" },
   { href: "/dashboard/imports", label: "Imports", icon: UploadSimple, module: "imports" },
@@ -41,6 +45,8 @@ const NAV: { href: string; label: string; icon: typeof SquaresFour; module: AppM
   { href: "/dashboard/rapports", label: "Rapports", icon: ChartBar, module: "reports" },
   { href: "/dashboard/settings", label: "Paramètres", icon: GearSix, module: "settings" },
 ];
+
+const COLLAPSE_KEY = "cpme_sidebar_collapsed";
 
 export function Sidebar({
   fullName,
@@ -53,12 +59,24 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const roleLabel = USER_ROLE_LABELS[role] ?? role;
-  const nav = NAV.filter((item) => canAccessModule(role, item.module));
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
+  }, []);
+
+  const toggleCollapsed = () =>
+    setCollapsed((v) => {
+      const next = !v;
+      localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0");
+      return next;
+    });
 
   const isActive = (href: string) =>
     href === "/dashboard" ? pathname === href : pathname.startsWith(href);
 
+  const roleLabel = USER_ROLE_LABELS[role] ?? role;
+  const nav = NAV.filter((item) => canAccessModule(role, item.module));
   const initials = fullName
     .split(" ")
     .map((p) => p[0])
@@ -70,9 +88,9 @@ export function Sidebar({
   return (
     <>
       {/* Barre mobile */}
-      <div className="flex items-center justify-between border-b border-sidebar-border bg-sidebar px-4 py-3 text-sidebar-heading md:hidden">
+      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-sidebar-border bg-sidebar/90 px-4 py-3 text-sidebar-heading backdrop-blur md:hidden">
         <span className="flex items-center gap-2 text-sm font-semibold">
-          <ShieldCheck size={18} className="text-accent" />
+          <ShieldCheck size={18} weight="fill" className="text-accent" />
           Conformité PME
         </span>
         <button aria-label="Menu" onClick={() => setOpen((v) => !v)} className="p-1">
@@ -82,61 +100,98 @@ export function Sidebar({
 
       <aside
         className={cn(
-          "w-full shrink-0 bg-sidebar text-sidebar-foreground md:flex md:w-64 md:flex-col",
-          open ? "flex flex-col" : "hidden"
+          "z-20 shrink-0 bg-sidebar text-sidebar-foreground",
+          "md:sticky md:top-0 md:flex md:h-screen md:flex-col",
+          collapsed ? "md:w-16" : "md:w-64",
+          open ? "flex w-full flex-col" : "hidden"
         )}
       >
-        {/* Logo */}
-        <div className="hidden items-center gap-2 border-b border-sidebar-border px-5 py-5 md:flex">
-          <ShieldCheck size={22} className="text-accent" aria-hidden />
-          <span className="text-base font-semibold tracking-tight text-sidebar-heading">
-            Conformité PME
-          </span>
+        {/* Logo + bouton réduire */}
+        <div
+          className={cn(
+            "hidden shrink-0 items-center border-b border-sidebar-border px-3 py-4 md:flex",
+            collapsed ? "justify-center" : "justify-between"
+          )}
+        >
+          {!collapsed ? (
+            <span className="flex items-center gap-2 px-2 text-base font-semibold tracking-tight text-sidebar-heading">
+              <ShieldCheck size={22} weight="fill" className="text-accent" aria-hidden />
+              Conformité PME
+            </span>
+          ) : null}
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            aria-label={collapsed ? "Déployer le menu" : "Réduire le menu"}
+            title={collapsed ? "Déployer le menu" : "Réduire le menu"}
+            className="rounded-md p-1.5 text-sidebar-foreground hover:bg-sidebar-surface hover:text-sidebar-heading"
+          >
+            <SidebarToggle size={18} />
+          </button>
         </div>
 
         {/* Navigation */}
         <nav data-tour="nav" className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
-          {nav.map(({ href, label, icon: Icon }) => {
+          {nav.map(({ href, label, icon: Icon, divider }) => {
             const active = isActive(href);
             return (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setOpen(false)}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                  active
-                    ? "bg-accent font-medium text-accent-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-surface hover:text-sidebar-heading"
-                )}
-              >
-                <Icon size={18} aria-hidden />
-                <span className="truncate">{label}</span>
-              </Link>
+              <Fragment key={href}>
+                {divider ? (
+                  <div className={cn("my-2 border-t border-accent/50", collapsed ? "mx-2" : "mx-1")} aria-hidden />
+                ) : null}
+                <Link
+                  href={href}
+                  onClick={() => setOpen(false)}
+                  aria-current={active ? "page" : undefined}
+                  title={collapsed ? label : undefined}
+                  className={cn(
+                    "group relative flex items-center rounded-md py-2 text-sm transition-colors",
+                    collapsed ? "justify-center px-0" : "gap-3 px-3",
+                    active
+                      ? "bg-accent font-medium text-accent-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-surface hover:text-sidebar-heading"
+                  )}
+                >
+                  <Icon size={18} aria-hidden />
+                  {!collapsed ? <span className="truncate">{label}</span> : null}
+                  {collapsed ? (
+                    <span className="pointer-events-none absolute left-full z-50 ml-2 hidden whitespace-nowrap rounded-md border border-sidebar-border bg-sidebar-surface px-2 py-1 text-xs text-sidebar-heading group-hover:block">
+                      {label}
+                    </span>
+                  ) : null}
+                </Link>
+              </Fragment>
             );
           })}
         </nav>
 
-        {/* Utilisateur */}
-        <div className="border-t border-sidebar-border p-3">
-          <div className="flex items-center gap-3 rounded-md px-2 py-2">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sidebar-surface text-xs font-semibold text-sidebar-heading">
+        {/* Utilisateur — reste en bas, flouté au scroll */}
+        <div className="sticky bottom-0 border-t border-sidebar-border bg-sidebar/80 p-3 backdrop-blur">
+          <div className={cn("flex items-center gap-3 rounded-md px-2 py-2", collapsed && "justify-center px-0")}>
+            <span
+              title={collapsed ? `${fullName} — ${roleLabel}` : undefined}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sidebar-surface text-xs font-semibold text-sidebar-heading"
+            >
               {initials || "?"}
             </span>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-medium text-sidebar-heading">{fullName}</div>
-              <div className="truncate text-xs text-sidebar-foreground">{roleLabel}</div>
-            </div>
-            <form action={signOut}>
-              <button
-                type="submit"
-                aria-label="Déconnexion"
-                className="rounded-md p-1.5 text-sidebar-foreground hover:bg-sidebar-surface hover:text-sidebar-heading"
-              >
-                <SignOut size={16} />
-              </button>
-            </form>
+            {!collapsed ? (
+              <>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium text-sidebar-heading">{fullName}</div>
+                  <div className="truncate text-xs text-sidebar-foreground">{roleLabel}</div>
+                </div>
+                <form action={signOut}>
+                  <button
+                    type="submit"
+                    aria-label="Déconnexion"
+                    title="Déconnexion"
+                    className="rounded-md p-1.5 text-sidebar-foreground hover:bg-sidebar-surface hover:text-sidebar-heading"
+                  >
+                    <SignOut size={16} />
+                  </button>
+                </form>
+              </>
+            ) : null}
           </div>
         </div>
       </aside>

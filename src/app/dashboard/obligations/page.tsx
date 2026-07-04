@@ -84,7 +84,7 @@ export default async function ObligationsPage({
             <TH>Échéance</TH>
             <TH>Priorité</TH>
             <TH>Statut</TH>
-            <TH>Actions</TH>
+            <TH className="text-right">Actions</TH>
           </TR>
         </THead>
         <tbody>
@@ -105,7 +105,7 @@ export default async function ObligationsPage({
                   <StatusBadge status={complianceFromObligationStatus(o.status)} label={OBLIGATION_STATUS_LABELS[o.status]} />
                 </TD>
                 <TD>
-                  <div className="flex gap-2">
+                  <div className="flex justify-end gap-2">
                     <Link href={`/dashboard/obligations/${o.id}`}>
                       <Button variant="outline" size="sm">Détail</Button>
                     </Link>

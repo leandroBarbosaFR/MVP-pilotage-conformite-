@@ -18,7 +18,6 @@ import {
   getPendingActions,
 } from "@/lib/queries/dashboard";
 import { StatCard } from "@/components/app/stat-card";
-import { DashboardTour } from "@/components/app/dashboard-tour";
 import { UpdateAlertsButton } from "@/components/app/update-alerts-button";
 import { DemoButton } from "@/components/settings/demo-button";
 import { getModuleBreakdown, type ModuleStat } from "@/lib/data";
@@ -97,7 +96,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <DashboardTour />
       {/* En-tête */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
