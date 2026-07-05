@@ -46,7 +46,7 @@ export default async function SitesPage({
   return (
     <div>
       <PageHeader
-        title="Sites et locaux"
+        title="Sites et installations"
         description="Bâtiments, entrepôts, ateliers, dépôts et zones — et leurs obligations de conformité."
         action={
           <AddPanel title="Nouveau site">

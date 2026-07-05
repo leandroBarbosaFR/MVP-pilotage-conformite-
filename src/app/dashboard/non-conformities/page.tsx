@@ -1,6 +1,6 @@
 import { requireContext } from "@/lib/queries/auth";
 import { getNonConformities, getSites, getProfiles, getEntityNameMap, getActions } from "@/lib/queries/entities";
-import { createNonConformity } from "@/lib/actions/entities";
+import { createNonPilotix } from "@/lib/actions/entities";
 import { PageHeader } from "@/components/app/page-header";
 import { AddPanel } from "@/components/app/add-panel";
 import { ListToolbar } from "@/components/app/list-toolbar";
@@ -14,7 +14,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { NC_SOURCE_TYPES, NC_STATUS_LABELS, NC_STATUS_TONE, RELATED_ENTITY_LABELS } from "@/types/enums";
 import { PRIORITY_LABELS } from "@/lib/status";
 import { formatDate } from "@/lib/utils";
-import type { ComplianceStatus, Site, Profile, NonConformity } from "@/lib/types/database";
+import type { ComplianceStatus, Site, Profile, NonPilotix } from "@/lib/types/database";
 
 const PAGE_SIZE = 20;
 
@@ -52,7 +52,7 @@ export default async function NonConformitiesPage({
     return [p.first_name, p.last_name].filter(Boolean).join(" ") || p.email || "—";
   };
 
-  const entityLabel = (n: NonConformity) =>
+  const entityLabel = (n: NonPilotix) =>
     n.related_entity_id
       ? `${RELATED_ENTITY_LABELS[n.related_entity_type as keyof typeof RELATED_ENTITY_LABELS] ?? ""} ${entMap.get(n.related_entity_id) ?? "—"}`.trim()
       : "—";
@@ -114,7 +114,7 @@ export default async function NonConformitiesPage({
 
 function NcForm({ sites, profiles }: { sites: Site[]; profiles: Profile[] }) {
   return (
-    <form action={createNonConformity} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form action={createNonPilotix} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <div className="sm:col-span-2">
         <Label>Titre</Label>
         <Input name="title" required />

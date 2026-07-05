@@ -67,7 +67,7 @@ export enum RelatedEntityType {
   CONTRACT = "CONTRACT",
   PROVIDER = "PROVIDER",
   AUDIT = "AUDIT",
-  NON_CONFORMITY = "NON_CONFORMITY",
+  NON_Pilotix = "NON_Pilotix",
   ACTION = "ACTION",
 }
 
@@ -125,7 +125,7 @@ export const COMPLIANCE_STATUS_LABELS: Record<ComplianceStatus, string> = {
 };
 
 export const MODULE_LABELS: Record<ObligationModule, string> = {
-  [ObligationModule.SITES]: "Sites et locaux",
+  [ObligationModule.SITES]: "Sites et installations",
   [ObligationModule.PERSONNEL]: "Personnel",
   [ObligationModule.PPE]: "EPI",
   [ObligationModule.EQUIPMENT]: "Machines et équipements",
@@ -164,7 +164,7 @@ export const RELATED_ENTITY_LABELS: Record<RelatedEntityType, string> = {
   [RelatedEntityType.CONTRACT]: "Contrat",
   [RelatedEntityType.PROVIDER]: "Prestataire",
   [RelatedEntityType.AUDIT]: "Audit",
-  [RelatedEntityType.NON_CONFORMITY]: "Non-conformité",
+  [RelatedEntityType.NON_Pilotix]: "Non-conformité",
   [RelatedEntityType.ACTION]: "Action",
 };
 

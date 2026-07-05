@@ -6,8 +6,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swa
 
 export const metadata: Metadata = {
   title: {
-    default: "Conformity — Logiciel de pilotage de conformité",
-    template: "%s · Conformity",
+    default: "Pilotix — Logiciel de pilotage de conformité",
+    template: "%s · Pilotix",
   },
   description:
     "Logiciel de pilotage de conformité : obligations, échéances, documents et actions au même endroit.",

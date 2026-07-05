@@ -2,6 +2,7 @@ import Link from "next/link";
 import { EyeIcon } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 import { Table, THead, TR, TH, TD, EmptyRow } from "@/components/ui/table";
+import { ClickableRow, StopClick } from "@/components/app/clickable-row";
 
 export type Column<T> = {
   header: string;
@@ -74,21 +75,28 @@ export function ListView<T>({
             {rows.length === 0 ? (
               <EmptyRow colSpan={colSpan} message={empty} />
             ) : (
-              rows.map((row) => (
-                <TR key={getKey(row)}>
-                  {columns.map((c, i) => (
-                    <TD key={i} className={c.align === "right" ? "text-right" : undefined}>{c.cell(row)}</TD>
-                  ))}
-                  {hasActionsCol ? (
-                    <TD>
-                      <div className="flex items-center justify-end gap-2">
-                        {eye(row)}
-                        {actions?.(row)}
-                      </div>
-                    </TD>
-                  ) : null}
-                </TR>
-              ))
+              rows.map((row) => {
+                const body = (
+                  <>
+                    {columns.map((c, i) => (
+                      <TD key={i} className={c.align === "right" ? "text-right" : undefined}>{c.cell(row)}</TD>
+                    ))}
+                    {hasActionsCol ? (
+                      <TD>
+                        <StopClick className="flex items-center justify-end gap-2">
+                          {eye(row)}
+                          {actions?.(row)}
+                        </StopClick>
+                      </TD>
+                    ) : null}
+                  </>
+                );
+                return href ? (
+                  <ClickableRow key={getKey(row)} href={href(row)}>{body}</ClickableRow>
+                ) : (
+                  <TR key={getKey(row)}>{body}</TR>
+                );
+              })
             )}
           </tbody>
         </Table>

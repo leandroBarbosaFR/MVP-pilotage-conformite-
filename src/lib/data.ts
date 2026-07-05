@@ -204,7 +204,7 @@ export const getModuleBreakdown = cache(async (): Promise<ModuleStat[]> => {
   const docStat = fromDates(documents.map((d) => d.expiration_date as string | null));
 
   return [
-    { module: "Sites et locaux", href: "/dashboard/sites", total: (sit.data ?? []).length, ...siteOblStat, missingDocs: 0, lateActions: 0 },
+    { module: "Sites et installations", href: "/dashboard/sites", total: (sit.data ?? []).length, ...siteOblStat, missingDocs: 0, lateActions: 0 },
     { module: "Personnel", href: "/dashboard/employees", total: employees.length, ...empStat, lateActions: lateActions.personnel },
     { module: "EPI", href: "/dashboard/epi", total: epis.length, ...epiStat, missingDocs: epis.filter((e) => !docEpi.has(e.id as string)).length, lateActions: lateActions.epi },
     { module: "Machines et équipements", href: "/dashboard/equipments", total: equipments.length, ...eqpStat, lateActions: lateActions.equipments },

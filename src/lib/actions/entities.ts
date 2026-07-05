@@ -345,7 +345,7 @@ export async function createAudit(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
-export async function createNonConformity(formData: FormData) {
+export async function createNonPilotix(formData: FormData) {
   const { company } = await requireContext();
   const supabase = await createClient();
   await supabase.from("non_conformities").insert({

@@ -173,7 +173,7 @@ export type RelatedEntityType =
   | "CONTRACT"
   | "PROVIDER"
   | "AUDIT"
-  | "NON_CONFORMITY"
+  | "NON_Pilotix"
   | "ACTION";
 
 export interface Obligation extends ArchivableRow {
@@ -338,7 +338,7 @@ export interface Audit extends ArchivableRow {
   notes: string | null;
 }
 
-export interface NonConformity extends ArchivableRow {
+export interface NonPilotix extends ArchivableRow {
   id: string;
   company_id: string;
   title: string;

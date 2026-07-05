@@ -8,7 +8,7 @@ import type {
   Epi,
   Equipment,
   ImportRow,
-  NonConformity,
+  NonPilotix,
   Notification,
   Obligation,
   Provider,
@@ -197,7 +197,7 @@ export async function getNonConformities(companyId: string, filters: ListFilters
   if (filters.search) q = q.ilike("title", `%${filters.search}%`);
   if (filters.status) q = q.eq("status", filters.status);
   const { data, count } = await q;
-  return { rows: (data as NonConformity[]) ?? [], count: count ?? 0 };
+  return { rows: (data as NonPilotix[]) ?? [], count: count ?? 0 };
 }
 
 export interface EntityCompliance {

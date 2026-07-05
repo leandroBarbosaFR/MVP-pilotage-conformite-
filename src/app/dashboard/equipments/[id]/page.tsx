@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/app/page-header";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { DetailGrid, DetailField, DetailSection } from "@/components/app/detail-field";
 import { Table, THead, TR, TH, TD, EmptyRow } from "@/components/ui/table";
+import { ClickableRow } from "@/components/app/clickable-row";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   CATEGORY_LABELS,
@@ -60,7 +61,7 @@ export default async function EquipmentDetailPage({
               <EmptyRow colSpan={4} message="Aucun élément." />
             ) : (
               obligations.map((o) => (
-                <TR key={o.id}>
+                <ClickableRow key={o.id} href={`/dashboard/obligations/${o.id}`}>
                   <TD className="font-medium">
                     <Link href={`/dashboard/obligations/${o.id}`} className="hover:underline">
                       {o.title}
@@ -74,7 +75,7 @@ export default async function EquipmentDetailPage({
                       label={OBLIGATION_STATUS_LABELS[o.status]}
                     />
                   </TD>
-                </TR>
+                </ClickableRow>
               ))
             )}
           </tbody>
@@ -95,7 +96,7 @@ export default async function EquipmentDetailPage({
               <EmptyRow colSpan={3} message="Aucun élément." />
             ) : (
               documents.map((d) => (
-                <TR key={d.id}>
+                <ClickableRow key={d.id} href={`/dashboard/documents/${d.id}`}>
                   <TD className="font-medium">
                     <Link href={`/dashboard/documents/${d.id}`} className="hover:underline">
                       {d.title}
@@ -103,7 +104,7 @@ export default async function EquipmentDetailPage({
                   </TD>
                   <TD>{d.document_type ?? "—"}</TD>
                   <TD>{formatDate(d.expiration_date)}</TD>
-                </TR>
+                </ClickableRow>
               ))
             )}
           </tbody>

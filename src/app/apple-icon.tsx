@@ -5,7 +5,7 @@ export const contentType = "image/png";
 
 const shield =
   "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 256 256'>" +
-  "<path d='M128 44 L208 80 V132 C208 168 172 196 128 212 C84 196 48 168 48 132 V80 Z' fill='#F37D16'/>" +
+  "<path d='M128 44 L208 80 V132 C208 168 172 196 128 212 C84 196 48 168 48 132 V80 Z' fill='#FF4103'/>" +
   "<path d='M98 130 L120 152 L162 102' fill='none' stroke='#FFFFFF' stroke-width='18' stroke-linecap='round' stroke-linejoin='round'/>" +
   "</svg>";
 
@@ -19,7 +19,7 @@ export default function AppleIcon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#111622",
+          background: "#001621",
           borderRadius: 40,
         }}
       >

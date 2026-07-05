@@ -15,7 +15,7 @@ do $$ begin
   if not exists (select 1 from pg_type where typname = 'related_entity_type') then
     create type related_entity_type as enum (
       'SITE','EMPLOYEE','DRIVER','PPE','EQUIPMENT','VEHICLE','DOCUMENT',
-      'CONTRACT','PROVIDER','AUDIT','NON_CONFORMITY','ACTION');
+      'CONTRACT','PROVIDER','AUDIT','NON_Pilotix','ACTION');
   end if;
 end $$;
 

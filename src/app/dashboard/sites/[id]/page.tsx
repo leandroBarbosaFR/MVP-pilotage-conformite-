@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/app/page-header";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { DetailGrid, DetailField, DetailSection } from "@/components/app/detail-field";
 import { Table, THead, TR, TH, TD, EmptyRow } from "@/components/ui/table";
+import { ClickableRow } from "@/components/app/clickable-row";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { OBLIGATION_STATUS_LABELS, complianceFromObligationStatus } from "@/lib/status";
 import { CONTRACT_STATUS_LABELS, CONTRACT_STATUS_TONE, AUDIT_STATUS_LABELS, AUDIT_STATUS_TONE } from "@/types/enums";
@@ -46,7 +47,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
               <EmptyRow colSpan={3} message="Aucune obligation liée." />
             ) : (
               obligations.map((o) => (
-                <TR key={o.id}>
+                <ClickableRow key={o.id} href={`/dashboard/obligations/${o.id}`}>
                   <TD className="font-medium">
                     <Link href={`/dashboard/obligations/${o.id}`} className="hover:underline">{o.title}</Link>
                   </TD>
@@ -54,7 +55,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
                   <TD>
                     <StatusBadge status={complianceFromObligationStatus(o.status)} label={OBLIGATION_STATUS_LABELS[o.status]} />
                   </TD>
-                </TR>
+                </ClickableRow>
               ))
             )}
           </tbody>

@@ -8,7 +8,7 @@ export default function SignupPage() {
       <div className="w-full max-w-md">
         <Link href="/" className="mb-6 flex items-center justify-center gap-2">
           <ShieldCheck size={24} className="text-accent" />
-          <span className="text-lg font-semibold tracking-tight text-foreground">Conformity</span>
+          <span className="text-lg font-semibold tracking-tight text-foreground">Pilotix</span>
         </Link>
 
         <div className="rounded-lg border border-border bg-surface p-6 sm:p-8">

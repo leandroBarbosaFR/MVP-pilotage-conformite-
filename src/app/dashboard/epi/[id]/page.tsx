@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/app/page-header";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { DetailGrid, DetailField, DetailSection } from "@/components/app/detail-field";
 import { Table, THead, TR, TH, TD, EmptyRow } from "@/components/ui/table";
+import { ClickableRow } from "@/components/app/clickable-row";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { statusFromDate, STATUS_LABELS } from "@/lib/status";
 import { formatDate } from "@/lib/utils";
@@ -81,7 +82,7 @@ export default async function EpiDetailPage({
               <EmptyRow colSpan={3} message="Aucun document lié." />
             ) : (
               documents.map((d) => (
-                <TR key={d.id}>
+                <ClickableRow key={d.id} href={`/dashboard/documents/${d.id}`}>
                   <TD className="font-medium">
                     <Link href={`/dashboard/documents/${d.id}`} className="hover:underline">
                       {d.title}
@@ -89,7 +90,7 @@ export default async function EpiDetailPage({
                   </TD>
                   <TD>{d.document_type ?? "—"}</TD>
                   <TD>{formatDate(d.expiration_date)}</TD>
-                </TR>
+                </ClickableRow>
               ))
             )}
           </tbody>
