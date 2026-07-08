@@ -1,10 +1,10 @@
 -- =====================================================================
--- Données de démonstration — TransPilot Demo
+-- Données de démonstration — TransPilot Demo (transport / logistique)
 -- Approche : une fonction RPC remplit la company de l'utilisateur courant.
 -- 1) Exécutez ce fichier une fois dans le SQL Editor Supabase.
 -- 2) Connectez-vous à l'app puis Paramètres > "Charger les données de démo"
 --    (ou appelez select public.load_demo_data(); en étant authentifié).
--- Nécessite les migrations 0001, 0002 et 0003.
+-- Nécessite les migrations 0001 à 0008.
 -- =====================================================================
 
 create or replace function public.load_demo_data()
@@ -27,7 +27,9 @@ declare
   oid  uuid;
   d    date;
   st   compliance_status;
-  -- Équipe de démonstration (membres invités, sans compte de connexion)
+  ct   int;
+  ins  int;
+  nxt  int;
   p_admin uuid; p_qhse uuid; p_maint uuid; p_rh uuid;
   p_parc uuid; p_expl uuid; p_sup uuid; p_user uuid;
   s1 uuid; s2 uuid; s3 uuid;
@@ -49,7 +51,6 @@ begin
          employee_count = '100 à 250'
    where id = v_company;
 
-  -- L'utilisateur courant devient ADMIN de la démo
   update public.profiles set role = 'ADMIN' where id = v_profile;
 
   -- Équipe de démonstration (profils sans user_id : membres invités)
@@ -70,56 +71,106 @@ begin
   insert into public.profiles (company_id, first_name, last_name, email, role, job_title, is_active) values
     (v_company,'Utilisateur','Démo','user.demo@transpilot-demo.fr','USER','Opérateur',true) returning id into p_user;
 
-  -- Réglages de notifications par défaut pour le tenant
   insert into public.notification_settings (tenant_id) values (v_company)
     on conflict (tenant_id) do nothing;
 
-  -- Véhicules (10)
-  for i in 1..10 loop
-    insert into public.vehicles (company_id, registration_number, vehicle_type, brand, model, service_date, status, responsible_id, supervisor_id)
+  -- Sites (3)
+  insert into public.sites (company_id, name, site_type, city, postal_code, country, surface_area, activity_type, manager_id, supervisor_id)
+  values (v_company,'Entrepôt Marseille','Entrepôt','Marseille','13011','France',4200,'Logistique',p_expl,p_qhse) returning id into s1;
+  insert into public.sites (company_id, name, site_type, city, postal_code, country, surface_area, activity_type, manager_id, supervisor_id)
+  values (v_company,'Bureau Lyon','Bureau','Lyon','69003','France',650,'Administratif',p_admin,p_qhse) returning id into s2;
+  insert into public.sites (company_id, name, site_type, city, postal_code, country, surface_area, activity_type, manager_id, supervisor_id)
+  values (v_company,'Atelier maintenance','Atelier','Vénissieux','69200','France',1800,'Maintenance',p_maint,p_qhse) returning id into s3;
+
+  -- Prestataires (6)
+  insert into public.providers (company_id, name, provider_type, contact_name, email, phone, city, country, site_id, responsible_id, insurance_expiry, priority, needs_followup) values
+    (v_company,'SécuriFeu Contrôles','Maintenance extincteurs','M. Fabre','contact@securifeu.fr','04 91 00 00 01','Marseille','France',s1,p_qhse,current_date+20,'MEDIUM',true) returning id into pr1;
+  insert into public.providers (company_id, name, provider_type, contact_name, email, phone, city, country, site_id, responsible_id, insurance_expiry, priority, needs_followup) values
+    (v_company,'ElecCheck Pro','Maintenance électrique','Mme Roy','contact@eleccheck.fr','04 72 00 00 02','Lyon','France',s3,p_qhse,current_date+200,'MEDIUM',false) returning id into pr2;
+  insert into public.providers (company_id, name, provider_type, contact_name, email, phone, city, country, site_id, responsible_id, insurance_expiry, priority, needs_followup) values
+    (v_company,'Garage Transport Services','Maintenance véhicules','M. Léon','contact@gts.fr','04 72 00 00 03','Vénissieux','France',s3,p_qhse,current_date+150,'MEDIUM',false) returning id into pr3;
+  insert into public.providers (company_id, name, provider_type, contact_name, email, phone, city, country, site_id, responsible_id, insurance_expiry, priority, needs_followup) values
+    (v_company,'Médecine du Travail Régionale','Médecine du travail','Dr. Meyer','contact@mtr.fr','04 78 00 00 04','Lyon','France',s2,p_qhse,current_date+300,'MEDIUM',false) returning id into pr4;
+  insert into public.providers (company_id, name, provider_type, contact_name, email, phone, city, country, site_id, responsible_id, insurance_expiry, priority, needs_followup) values
+    (v_company,'Formation Sécurité Plus','Organisme de formation','Mme Aziz','contact@fsp.fr','04 91 00 00 05','Marseille','France',s1,p_qhse,current_date+90,'MEDIUM',false) returning id into pr5;
+  insert into public.providers (company_id, name, provider_type, contact_name, email, phone, city, country, site_id, responsible_id, insurance_expiry, priority, needs_followup) values
+    (v_company,'Assurance Pro Entreprise','Assurance','M. Blanc','contact@ape.fr','01 40 00 00 06','Paris','France',null,p_qhse,current_date-10,'CRITICAL',true) returning id into pr6;
+
+  -- Salariés (8)
+  for i in 1..8 loop
+    insert into public.employees (company_id, first_name, last_name, job_title, job_family, service, site_id, contract_type, hire_date, contract_end_date, email, phone, status, responsible_id, supervisor_id)
     values (
       v_company,
-      'AA-' || lpad(i::text, 3, '0') || '-BB',
+      (array['Marc','Julie','Karim','Sophie','Paul','Nadia','Éric','Lucas'])[i],
+      (array['Durand','Petit','Benali','Moreau','Girard','Haddad','Lefevre','Roy'])[i],
+      (array['Conducteur PL','Conductrice PL','Cariste','Exploitation','Conducteur SPL','Magasinier','Conducteur PL','Mécanicien'])[i],
+      (array['Conducteur','Conducteur','Cariste','Exploitation','Conducteur','Cariste','Conducteur','Maintenance'])[i],
+      (array['Transport','Transport','Entrepôt','Support','Transport','Entrepôt','Transport','Support'])[i],
+      (array[s1,s2,s1,s2,s1,s1,s1,s3])[i],
+      case when i % 4 = 0 then 'Intérim' else 'CDI' end,
+      current_date - (i * 300),
+      case when i % 4 = 0 then current_date + 60 end,
+      'salarie' || i || '@transpilot-demo.fr',
+      '06 00 00 00 0' || i,
+      (array['actif','actif','actif','actif','arret_maladie','actif','actif','reprise_prevue'])[i],
+      p_rh, p_qhse
+    ) returning id into eid;
+    emp := array_append(emp, eid);
+  end loop;
+
+  -- Véhicules (10)
+  for i in 1..10 loop
+    ct  := (array[-40,12,200,60,-8,90,25,300,45,5])[i];
+    ins := (array[12,300,-5,80,150,20,-10,200,60,40])[i];
+    insert into public.vehicles (company_id, registration_number, vehicle_type, brand, model, service_date, site_id, main_driver_id, fleet_manager_id, insurance_expiry, technical_inspection_expiry, last_maintenance, next_maintenance, mileage, tachograph_expiry, extinguisher_expiry, priority, status, responsible_id, supervisor_id)
+    values (
+      v_company,
+      case when i = 1 then 'AB-123-CD' else 'AA-' || lpad(i::text, 3, '0') || '-BB' end,
       (array['Poids lourd','Utilitaire','Tracteur routier','Fourgon'])[1 + (i % 4)],
       (array['Renault','Volvo','MAN','Iveco','Mercedes'])[1 + (i % 5)],
       'Série ' || i,
       current_date - (i * 130),
+      (array[s1,s2,s1,s3])[1 + (i % 4)],
+      case when i <= 8 then emp[i] end,
+      p_parc,
+      current_date + ins,
+      current_date + ct,
+      current_date - (90 + i * 10),
+      current_date + (90 - i * 5),
+      60000 + i * 12500,
+      case when i % 2 = 0 then current_date + (ct + 30) end,
+      current_date + (ins - 15),
+      (case when ct < 0 or ins < 0 then 'CRITICAL' else 'MEDIUM' end)::priority_level,
       (array['actif','actif','maintenance'])[1 + (i % 3)],
       p_parc, p_expl
     ) returning id into vid;
     veh := array_append(veh, vid);
   end loop;
 
-  -- Conducteurs / salariés (8)
-  for i in 1..8 loop
-    insert into public.employees (company_id, first_name, last_name, job_title, email, phone, status, responsible_id, supervisor_id)
-    values (
-      v_company,
-      (array['Marc','Julie','Karim','Sophie','Paul','Nadia','Éric','Lucas'])[i],
-      (array['Durand','Petit','Benali','Moreau','Girard','Haddad','Lefevre','Roy'])[i],
-      (array['Conducteur PL','Conductrice PL','Cariste','Exploitation','Conducteur SPL','Magasinier','Conducteur PL','Mécanicien'])[i],
-      'salarie' || i || '@transpilot-demo.fr',
-      '06 00 00 00 0' || i,
-      'actif', p_rh, p_qhse
-    ) returning id into eid;
-    emp := array_append(emp, eid);
-  end loop;
-
   -- Équipements (6)
   for i in 1..6 loop
-    insert into public.equipments (company_id, name, equipment_type, site, internal_reference, status, responsible_id, supervisor_id)
+    nxt := (array[40,-3,120,15,200,8])[i];
+    insert into public.equipments (company_id, name, equipment_type, category, serial_number, site, site_id, internal_reference, last_check_date, next_check_date, frequency, provider_id, priority, status, responsible_id, supervisor_id)
     values (
       v_company,
       (array['Hayon élévateur','Chariot élévateur','Pont roulant','Compresseur','Groupe froid','Transpalette'])[i],
       (array['Levage','Manutention','Levage','Pneumatique','Froid','Manutention'])[i],
+      (array['Hayon élévateur','Chariot élévateur','Pont roulant','Compresseur','Groupe froid','Transpalette électrique'])[i],
+      'SN-' || (1000 + (i - 1) * 37),
       (array['Dépôt Nord','Dépôt Sud','Atelier','Atelier','Dépôt Nord','Quai 3'])[i],
+      (array[s1,s1,s3,s3,s1,s1])[i],
       'EQ-' || lpad(i::text, 4, '0'),
+      current_date + (nxt - 365),
+      current_date + nxt,
+      'annuelle',
+      (array[pr3,pr3,pr2,pr2,null,pr3]::uuid[])[i],
+      (case when nxt < 0 then 'CRITICAL' when nxt <= 30 then 'HIGH' else 'MEDIUM' end)::priority_level,
       'actif', p_maint, p_qhse
     ) returning id into qid;
     eqp := array_append(eqp, qid);
   end loop;
 
-  -- EPI (8) — assignés aux salariés, renouvellements variés
+  -- EPI (8)
   for i in 1..8 loop
     insert into public.epi (company_id, epi_type, internal_reference, assigned_employee_id, issue_date, renewal_date, status, responsible_id, supervisor_id)
     values (
@@ -132,6 +183,26 @@ begin
       'actif', p_qhse, p_qhse
     );
   end loop;
+
+  -- Certifications du personnel (12) — formations, habilitations, visites médicales, permis, EPI
+  insert into public.employee_certifications (company_id, employee_id, type, category, title, obtained_date, expiry_date, status, priority, responsible_id, supervisor_id) values
+    (v_company, emp[1], 'LICENSE',      'Permis EC',                       'Permis poids lourd EC',            current_date-1500, current_date-6,  'EXPIRED',       'CRITICAL', p_rh, p_qhse),
+    (v_company, emp[1], 'FORMATION',    'FIMO',                            'FIMO marchandises',                current_date-1200, current_date+120,'COMPLIANT',     'MEDIUM',   p_rh, p_qhse),
+    (v_company, emp[1], 'MEDICAL_VISIT','Visite médicale',                 'Visite médicale périodique',       current_date-320,  current_date+40, 'COMPLIANT',     'MEDIUM',   p_rh, p_qhse),
+    (v_company, emp[2], 'FORMATION',    'FCO',                             'FCO marchandises',                 current_date-900,  current_date+25, 'EXPIRING_SOON', 'HIGH',     p_rh, p_qhse),
+    (v_company, emp[2], 'HABILITATION', 'Habilitation électrique B0/H0',   'Habilitation électrique B0',       current_date-700,  current_date-6,  'EXPIRED',       'CRITICAL', p_rh, p_qhse),
+    (v_company, emp[3], 'AUTHORIZATION','CACES R489',                      'CACES R489 catégorie 3',           current_date-800,  current_date+15, 'EXPIRING_SOON', 'HIGH',     p_rh, p_qhse),
+    (v_company, emp[3], 'PPE',          'EPI',                             'Dotation EPI cariste',             current_date-200,  current_date-5,  'EXPIRED',       'CRITICAL', p_rh, p_qhse),
+    (v_company, emp[3], 'FORMATION',    'SST',                             'Sauveteur secouriste du travail',  current_date-400,  current_date+200,'COMPLIANT',     'MEDIUM',   p_rh, p_qhse),
+    (v_company, emp[5], 'LICENSE',      'Carte conducteur',                'Carte conducteur',                 current_date-1000, current_date+75, 'COMPLIANT',     'MEDIUM',   p_rh, p_qhse),
+    (v_company, emp[6], 'AUTHORIZATION','CACES R485',                      'CACES R485 gerbeur',               current_date-600,  current_date+8,  'EXPIRING_SOON', 'HIGH',     p_rh, p_qhse),
+    (v_company, emp[6], 'MEDICAL_VISIT','Visite médicale',                 'Visite médicale périodique',       current_date-350,  current_date-12, 'EXPIRED',       'CRITICAL', p_rh, p_qhse),
+    (v_company, emp[8], 'HABILITATION', 'Habilitation électrique BR',      'Habilitation électrique BR',       current_date-500,  current_date+90, 'COMPLIANT',     'MEDIUM',   p_rh, p_qhse);
+
+  -- Absences & aptitude (2) — sans diagnostic médical
+  insert into public.employee_absences (company_id, employee_id, is_sick_leave, start_date, expected_end_date, return_date, work_status, aptitude, restrictions, next_medical_visit, return_visit_required, responsible_id, internal_notes) values
+    (v_company, emp[5], true,  current_date-10, current_date+20, null,           'arret_maladie',  null,                    null,                                          current_date+22, true, p_rh, 'Reprise à confirmer avec la médecine du travail.'),
+    (v_company, emp[8], false, current_date-30, current_date-2,  current_date-1, 'reprise_prevue', 'FIT_WITH_RESTRICTIONS', 'Pas de port de charge lourde pendant 1 mois', current_date+15, true, p_rh, 'Aménagement de poste temporaire.');
 
   -- Obligations (20) — échéances et statuts variés
   for i in 1..20 loop
@@ -157,7 +228,7 @@ begin
       (array['annuelle','annuelle','semestrielle','trimestrielle','unique'])[1 + (i % 5)],
       (array['LOW','MEDIUM','CRITICAL'])[1 + (i % 3)]::priority_level,
       st,
-      case when i % 5 = 0 then null else p_qhse end, -- quelques obligations sans responsable
+      case when i % 5 = 0 then null else p_qhse end,
       p_qhse,
       case when i % 3 = 0 then veh[1 + (i % array_length(veh, 1))] end,
       case when i % 3 = 1 then emp[1 + (i % array_length(emp, 1))] end,
@@ -171,9 +242,15 @@ begin
     obs := array_append(obs, oid);
   end loop;
 
-  -- Documents (10) — certains expirés, certains manquants (obligations sans doc)
+  -- Obligations de site (sécurité incendie / contrôles réglementaires) rattachées via related_entity
+  insert into public.obligations (company_id, title, category, description, due_date, frequency, priority, status, responsible_id, supervisor_id, provider_id, module, related_entity_type, related_entity_id, expected_document) values
+    (v_company,'Contrôle extincteurs','site','Vérification annuelle des extincteurs.',current_date+8,'annuelle','HIGH','EXPIRING_SOON',p_qhse,p_admin,pr1,'SITES','SITE',s1,'Rapport de contrôle extincteurs'),
+    (v_company,'Vérification installation électrique','site','Contrôle réglementaire de l''installation électrique.',current_date-8,'annuelle','CRITICAL','EXPIRED',p_maint,p_qhse,pr2,'SITES','SITE',s3,'Rapport électrique'),
+    (v_company,'Contrôle des racks de stockage','site','Vérification annuelle des racks.',current_date+45,'annuelle','MEDIUM','COMPLIANT',p_expl,p_qhse,null,'SITES','SITE',s1,'Rapport contrôle racks');
+
+  -- Documents (10) — certains expirés, quelques-uns rattachés à site/prestataire
   for i in 1..10 loop
-    insert into public.documents (company_id, title, document_type, expiration_date, status, obligation_id, vehicle_id, responsible_id, supervisor_id, uploaded_by)
+    insert into public.documents (company_id, title, document_type, expiration_date, status, obligation_id, vehicle_id, site_id, provider_id, responsible_id, supervisor_id, uploaded_by)
     values (
       v_company,
       (array['CT_2025.pdf','Attestation_assurance.pdf','Carte_tachy.pdf','Certificat_extincteur.pdf','Visite_medicale.pdf','Permis.pdf','FIMO.pdf','Rapport_levage.pdf','PV_controle.pdf','Registre.pdf'])[i],
@@ -182,12 +259,14 @@ begin
       case when (array[-30,-5,90,180,-15,45,300,20,-2,150])[i] < 0 then 'EXPIRED' else 'COMPLIANT' end,
       obs[i],
       case when i % 2 = 0 then veh[1 + (i % array_length(veh, 1))] end,
+      case when i = 4 then s1 end,
+      case when i = 2 then pr6 when i = 8 then pr3 end,
       p_qhse, p_qhse,
       v_profile
     );
   end loop;
 
-  -- Actions génériques (15) — statuts variés dont en retard
+  -- Actions génériques (15)
   for i in 1..15 loop
     insert into public.actions (company_id, title, description, status, priority, due_date, assigned_to, supervisor_id, obligation_id, created_by)
     values (
@@ -209,7 +288,7 @@ begin
     );
   end loop;
 
-  -- Actions d'exemple ciblées (responsables / superviseurs métier)
+  -- Actions d'exemple ciblées
   insert into public.actions (company_id, title, category, description, status, priority, due_date, assigned_to, supervisor_id, created_by) values
     (v_company,'Renouveler habilitation électrique - 4 salariés','RH','Habilitations à renouveler avant échéance.','TODO','CRITICAL',current_date,        p_rh,   p_qhse, v_profile),
     (v_company,'Contrôle chariot élévateur CH-12','Maintenance','Vérification réglementaire du chariot élévateur.','TODO','CRITICAL',current_date + 3, p_maint,p_qhse, v_profile),
@@ -230,28 +309,6 @@ begin
     );
   end loop;
 
-  -- Sites et locaux (3)
-  insert into public.sites (company_id, name, site_type, city, postal_code, country, surface_area, activity_type, manager_id, supervisor_id)
-  values (v_company,'Entrepôt Marseille','Entrepôt','Marseille','13011','France',4200,'Logistique',p_expl,p_qhse) returning id into s1;
-  insert into public.sites (company_id, name, site_type, city, postal_code, country, surface_area, activity_type, manager_id, supervisor_id)
-  values (v_company,'Bureau Lyon','Bureau','Lyon','69003','France',650,'Administratif',p_admin,p_qhse) returning id into s2;
-  insert into public.sites (company_id, name, site_type, city, postal_code, country, surface_area, activity_type, manager_id, supervisor_id)
-  values (v_company,'Atelier maintenance','Atelier','Vénissieux','69200','France',1800,'Maintenance',p_maint,p_qhse) returning id into s3;
-
-  -- Prestataires (6)
-  insert into public.providers (company_id, name, provider_type, contact_name, email, phone, city, country)
-  values (v_company,'SécuriFeu Contrôles','Maintenance extincteurs','M. Fabre','contact@securifeu.fr','04 91 00 00 01','Marseille','France') returning id into pr1;
-  insert into public.providers (company_id, name, provider_type, contact_name, email, phone, city, country)
-  values (v_company,'ElecCheck Pro','Maintenance électrique','Mme Roy','contact@eleccheck.fr','04 72 00 00 02','Lyon','France') returning id into pr2;
-  insert into public.providers (company_id, name, provider_type, contact_name, email, phone, city, country)
-  values (v_company,'Garage Transport Services','Maintenance véhicules','M. Léon','contact@gts.fr','04 72 00 00 03','Vénissieux','France') returning id into pr3;
-  insert into public.providers (company_id, name, provider_type, contact_name, email, phone, city, country)
-  values (v_company,'Médecine du Travail Régionale','Médecine du travail','Dr. Meyer','contact@mtr.fr','04 78 00 00 04','Lyon','France') returning id into pr4;
-  insert into public.providers (company_id, name, provider_type, contact_name, email, phone, city, country)
-  values (v_company,'Formation Sécurité Plus','Organisme de formation','Mme Aziz','contact@fsp.fr','04 91 00 00 05','Marseille','France') returning id into pr5;
-  insert into public.providers (company_id, name, provider_type, contact_name, email, phone, city, country)
-  values (v_company,'Assurance Pro Entreprise','Assurance','M. Blanc','contact@ape.fr','01 40 00 00 06','Paris','France') returning id into pr6;
-
   -- Contrats (6)
   insert into public.contracts (company_id, title, contract_type, provider_id, site_id, start_date, end_date, renewal_date, notice_period_days, amount, currency, responsible_id, supervisor_id, status)
   values
@@ -262,7 +319,7 @@ begin
     (v_company,'Contrat médecine du travail','Médecine du travail',pr4,s2,current_date-365,current_date+12,current_date+12,30,2400,'EUR',p_rh,p_qhse,'TO_RENEW'),
     (v_company,'Contrat maintenance électrique','Maintenance électrique',pr2,s3,current_date-400,current_date-8,current_date-8,30,5200,'EUR',p_maint,p_qhse,'EXPIRED');
 
-  -- Audits et inspections (4)
+  -- Audits (4)
   insert into public.audits (company_id, title, audit_type, site_id, auditor_name, planned_date, completed_date, status, result, score, responsible_id, supervisor_id)
   values
     (v_company,'Audit sécurité semestriel','Audit sécurité',s1,'Cabinet QHSE Conseil',current_date-20,current_date-18,'DONE','MINOR_NC',82,p_qhse,p_admin),
@@ -271,14 +328,21 @@ begin
     (v_company,'Visite sécurité atelier','Visite sécurité',s3,'Cabinet QHSE Conseil',current_date-5,null,'LATE',null,null,p_maint,p_qhse);
 
   -- Non-conformités (5)
-  insert into public.non_conformities (company_id, title, description, severity, source_type, site_id, detected_at, responsible_id, supervisor_id, status)
+  insert into public.non_conformities (company_id, title, description, severity, source_type, site_id, related_entity_type, related_entity_id, detected_at, due_date, responsible_id, supervisor_id, status)
   values
-    (v_company,'Registre sécurité non mis à jour','Écart constaté à traiter.','MEDIUM','Audit',s1,current_date-10,p_qhse,p_admin,'OPEN'),
-    (v_company,'Contrôle gaz expiré','Écart constaté à traiter.','HIGH','Contrôle',s3,current_date-25,p_maint,p_qhse,'IN_PROGRESS'),
-    (v_company,'Rapport extincteurs manquant','Écart constaté à traiter.','MEDIUM','Document',s1,current_date-6,p_qhse,p_admin,'OPEN'),
-    (v_company,'Pneus véhicule AB-123-CD à contrôler','Écart constaté à traiter.','HIGH','Véhicule',null,current_date-3,p_parc,p_expl,'OPEN'),
-    (v_company,'Action corrective audit client non terminée','Écart constaté à traiter.','CRITICAL','Audit',s1,current_date-30,p_qhse,p_admin,'IN_PROGRESS');
+    (v_company,'Registre sécurité non mis à jour','Écart constaté à traiter.','MEDIUM','Audit',s1,'SITE',s1,current_date-10,current_date+20,p_qhse,p_admin,'OPEN'),
+    (v_company,'Contrôle gaz expiré','Écart constaté à traiter.','HIGH','Contrôle',s3,'SITE',s3,current_date-25,current_date+5,p_maint,p_qhse,'IN_PROGRESS'),
+    (v_company,'Rapport extincteurs manquant','Écart constaté à traiter.','MEDIUM','Document',s1,'SITE',s1,current_date-6,current_date+15,p_qhse,p_admin,'OPEN'),
+    (v_company,'Pneus véhicule AB-123-CD à contrôler','Écart constaté à traiter.','HIGH','Véhicule',null,'VEHICLE',veh[1],current_date-3,current_date+7,p_parc,p_expl,'OPEN'),
+    (v_company,'Action corrective audit client non terminée','Écart constaté à traiter.','CRITICAL','Audit',s1,'SITE',s1,current_date-30,current_date-2,p_qhse,p_admin,'IN_PROGRESS');
 
-  return 'Données de démonstration chargées : 8 membres, 3 sites, 6 prestataires, 6 contrats, 4 audits, 5 non-conformités, 10 véhicules, 8 conducteurs, 6 équipements, 8 EPI, 20 obligations, 10 documents, 20 actions, 6 notifications.';
+  -- Incidents & observations sécurité (3)
+  insert into public.incidents (company_id, type, title, description, site_id, zone, occurred_at, severity, status, responsible_id, supervisor_id, related_entity_type, related_entity_id)
+  values
+    (v_company,'NEAR_MISS','Presque-accident chariot élévateur sur zone de circulation','Événement terrain à traiter.',s1,'Zone caristes',current_date-4,'HIGH','OPEN',p_qhse,p_expl,'SITE',s1),
+    (v_company,'OBSERVATION','Port des EPI non respecté au quai','Événement terrain à traiter.',s1,'Quai 3',current_date-9,'MEDIUM','IN_PROGRESS',p_qhse,p_expl,'SITE',s1),
+    (v_company,'INCIDENT','Choc palette contre rack de stockage','Événement terrain à traiter.',s3,'Stockage A',current_date-2,'MEDIUM','OPEN',p_qhse,p_expl,'SITE',s3);
+
+  return 'Données de démonstration chargées : 8 membres, 3 sites, 6 prestataires, 6 contrats, 4 audits, 5 non-conformités, 3 incidents, 10 véhicules, 8 salariés, 12 habilitations, 2 absences, 6 équipements, 8 EPI, 23 obligations, 10 documents, 20 actions, 6 notifications.';
 end;
 $$;

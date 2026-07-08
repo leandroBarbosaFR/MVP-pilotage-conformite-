@@ -43,19 +43,73 @@ const C = DEMO_COMPANY_ID;
 const EMP_FIRST = ["Marc", "Julie", "Karim", "Sophie", "Paul", "Nadia", "Éric", "Lucas"];
 const EMP_LAST = ["Durand", "Petit", "Benali", "Moreau", "Girard", "Haddad", "Lefevre", "Roy"];
 const EMP_JOB = ["Conducteur PL", "Conductrice PL", "Cariste", "Exploitation", "Conducteur SPL", "Magasinier", "Conducteur PL", "Mécanicien"];
+const EMP_FAMILY = ["Conducteur", "Conducteur", "Cariste", "Exploitation", "Conducteur", "Cariste", "Conducteur", "Maintenance"];
+const EMP_SITE = ["site-1", "site-2", "site-1", "site-2", "site-1", "site-1", "site-1", "site-3"];
+const EMP_STATUS = ["actif", "actif", "actif", "actif", "arret_maladie", "actif", "actif", "reprise_prevue"];
 export const employees: Row[] = EMP_FIRST.map((f, i) => ({
   id: `emp-${i + 1}`,
   company_id: C,
   first_name: f,
   last_name: EMP_LAST[i],
   job_title: EMP_JOB[i],
+  job_family: EMP_FAMILY[i],
+  service: EMP_FAMILY[i] === "Conducteur" ? "Transport" : EMP_FAMILY[i] === "Cariste" ? "Entrepôt" : "Support",
+  site_id: EMP_SITE[i],
+  contract_type: i % 4 === 3 ? "Intérim" : "CDI",
+  hire_date: iso(-(i + 1) * 300),
+  contract_end_date: i % 4 === 3 ? iso(60) : null,
   email: `salarie${i + 1}@transpilot-demo.fr`,
   phone: `06 12 34 5${i} 0${i}`,
-  status: "actif",
+  status: EMP_STATUS[i],
   responsible_id: "p-rh",
   supervisor_id: "p-qhse",
   ...archivable,
 }));
+
+// --- Personnel : certifications (formations, habilitations, VM, permis, EPI) ---
+type CertSeed = { emp: string; type: string; category: string; title: string; obtained: number; expiry: number };
+const CERT_SEED: CertSeed[] = [
+  { emp: "emp-1", type: "LICENSE", category: "Permis EC", title: "Permis poids lourd EC", obtained: -1500, expiry: -6 },
+  { emp: "emp-1", type: "FORMATION", category: "FIMO", title: "FIMO marchandises", obtained: -1200, expiry: 120 },
+  { emp: "emp-1", type: "MEDICAL_VISIT", category: "Visite médicale", title: "Visite médicale périodique", obtained: -320, expiry: 40 },
+  { emp: "emp-2", type: "FORMATION", category: "FCO", title: "FCO marchandises", obtained: -900, expiry: 25 },
+  { emp: "emp-2", type: "HABILITATION", category: "Habilitation électrique B0/H0", title: "Habilitation électrique B0", obtained: -700, expiry: -6 },
+  { emp: "emp-3", type: "AUTHORIZATION", category: "CACES R489", title: "CACES R489 catégorie 3", obtained: -800, expiry: 15 },
+  { emp: "emp-3", type: "PPE", category: "EPI", title: "Dotation EPI cariste", obtained: -200, expiry: -5 },
+  { emp: "emp-3", type: "FORMATION", category: "SST", title: "Sauveteur secouriste du travail", obtained: -400, expiry: 200 },
+  { emp: "emp-5", type: "LICENSE", category: "Carte conducteur", title: "Carte conducteur", obtained: -1000, expiry: 75 },
+  { emp: "emp-6", type: "AUTHORIZATION", category: "CACES R485", title: "CACES R485 gerbeur", obtained: -600, expiry: 8 },
+  { emp: "emp-6", type: "MEDICAL_VISIT", category: "Visite médicale", title: "Visite médicale périodique", obtained: -350, expiry: -12 },
+  { emp: "emp-8", type: "HABILITATION", category: "Habilitation électrique BR", title: "Habilitation électrique BR", obtained: -500, expiry: 90 },
+];
+function certStatus(days: number): string {
+  if (days < 0) return "EXPIRED";
+  if (days <= 30) return "EXPIRING_SOON";
+  return "COMPLIANT";
+}
+export const employee_certifications: Row[] = CERT_SEED.map((c, i) => ({
+  id: `cert-${i + 1}`,
+  company_id: C,
+  employee_id: c.emp,
+  type: c.type,
+  category: c.category,
+  title: c.title,
+  obtained_date: iso(c.obtained),
+  expiry_date: iso(c.expiry),
+  status: certStatus(c.expiry),
+  priority: c.expiry < 0 ? "CRITICAL" : c.expiry <= 30 ? "HIGH" : "MEDIUM",
+  document_id: null,
+  responsible_id: "p-rh",
+  supervisor_id: "p-qhse",
+  notes: null,
+  ...archivable,
+}));
+
+// --- Personnel : absences & aptitude (sans diagnostic médical) ---------
+export const employee_absences: Row[] = [
+  { id: "abs-1", company_id: C, employee_id: "emp-5", is_sick_leave: true, start_date: iso(-10), expected_end_date: iso(20), return_date: null, work_status: "arret_maladie", aptitude: null, restrictions: null, next_medical_visit: iso(22), return_visit_required: true, document_id: null, responsible_id: "p-rh", internal_notes: "Reprise à confirmer avec la médecine du travail.", ...archivable },
+  { id: "abs-2", company_id: C, employee_id: "emp-8", is_sick_leave: false, start_date: iso(-30), expected_end_date: iso(-2), return_date: iso(-1), work_status: "reprise_prevue", aptitude: "FIT_WITH_RESTRICTIONS", restrictions: "Pas de port de charge lourde pendant 1 mois", next_medical_visit: iso(15), return_visit_required: true, document_id: null, responsible_id: "p-rh", internal_notes: "Aménagement de poste temporaire.", ...archivable },
+];
 
 // --- EPI ---------------------------------------------------------------
 const EPI_TYPE = ["Casque", "Harnais", "Chaussures de sécurité", "Détecteur de gaz", "Gants", "Lunettes", "Protections auditives", "Casque"];
@@ -78,13 +132,26 @@ export const epi: Row[] = EPI_TYPE.map((t, i) => ({
 const EQ_NAME = ["Hayon élévateur", "Chariot élévateur CH-12", "Pont roulant", "Compresseur", "Groupe froid", "Transpalette"];
 const EQ_TYPE = ["Levage", "Manutention", "Levage", "Pneumatique", "Froid", "Manutention"];
 const EQ_SITE = ["Dépôt Nord", "Dépôt Sud", "Atelier", "Atelier", "Dépôt Nord", "Quai 3"];
+const EQ_CATEGORY = ["Hayon élévateur", "Chariot élévateur", "Pont roulant", "Compresseur", "Groupe froid", "Transpalette électrique"];
+const EQ_SITE_ID = ["site-1", "site-1", "site-3", "site-3", "site-1", "site-1"];
+const EQ_NEXT = [40, -3, 120, 15, 200, 8];
+const EQ_PROV = ["prov-3", "prov-3", "prov-2", "prov-2", null, "prov-3"];
 export const equipments: Row[] = EQ_NAME.map((n, i) => ({
   id: `eqp-${i + 1}`,
   company_id: C,
   name: n,
   equipment_type: EQ_TYPE[i],
+  category: EQ_CATEGORY[i],
+  serial_number: `SN-${String(1000 + i * 37)}`,
   site: EQ_SITE[i],
+  site_id: EQ_SITE_ID[i],
   internal_reference: `EQ-${String(i + 1).padStart(4, "0")}`,
+  last_check_date: iso(EQ_NEXT[i] - 365),
+  next_check_date: iso(EQ_NEXT[i]),
+  frequency: "annuelle",
+  provider_id: EQ_PROV[i],
+  priority: EQ_NEXT[i] < 0 ? "CRITICAL" : EQ_NEXT[i] <= 30 ? "HIGH" : "MEDIUM",
+  notes: null,
   status: "actif",
   responsible_id: "p-maint",
   supervisor_id: "p-qhse",
@@ -94,6 +161,9 @@ export const equipments: Row[] = EQ_NAME.map((n, i) => ({
 // --- Véhicules ---------------------------------------------------------
 const V_TYPE = ["Poids lourd", "Utilitaire", "Tracteur routier", "Fourgon"];
 const V_BRAND = ["Renault", "Volvo", "MAN", "Iveco", "Mercedes"];
+const V_SITE = ["site-1", "site-2", "site-1", "site-3"];
+const V_CT = [-40, 12, 200, 60, -8, 90, 25, 300, 45, 5];
+const V_INS = [12, 300, -5, 80, 150, 20, -10, 200, 60, 40];
 export const vehicles: Row[] = Array.from({ length: 10 }, (_, k) => {
   const i = k + 1;
   return {
@@ -104,6 +174,18 @@ export const vehicles: Row[] = Array.from({ length: 10 }, (_, k) => {
     brand: V_BRAND[i % 5],
     model: `Série ${i}`,
     service_date: iso(-i * 130),
+    site_id: V_SITE[i % 4],
+    main_driver_id: i <= 8 ? `emp-${i}` : null,
+    fleet_manager_id: "p-parc",
+    insurance_expiry: iso(V_INS[k]),
+    technical_inspection_expiry: iso(V_CT[k]),
+    last_maintenance: iso(-90 - i * 10),
+    next_maintenance: iso(90 - i * 5),
+    mileage: 60000 + i * 12500,
+    tachograph_expiry: i % 2 === 0 ? iso(V_CT[k] + 30) : null,
+    extinguisher_expiry: iso(V_INS[k] - 15),
+    priority: V_CT[k] < 0 || V_INS[k] < 0 ? "CRITICAL" : "MEDIUM",
+    notes: null,
     status: i % 3 === 2 ? "maintenance" : "actif",
     responsible_id: "p-parc",
     supervisor_id: "p-expl",
@@ -192,6 +274,8 @@ export const documents: Row[] = DOC_TITLE.map((t, k) => {
     employee_id: null,
     equipment_id: null,
     epi_id: i % 3 === 0 ? `epi-${1 + (i % 8)}` : null,
+    provider_id: i === 2 ? "prov-6" : i === 8 ? "prov-3" : null,
+    site_id: i === 4 ? "site-1" : null,
     responsible_id: "p-qhse",
     supervisor_id: "p-qhse",
     uploaded_by: "p-admin",
@@ -285,13 +369,18 @@ export const sites: Row[] = [
 
 // --- Prestataires ------------------------------------------------------
 export const providers: Row[] = [
-  { id: "prov-1", name: "SécuriFeu Contrôles", provider_type: "Maintenance extincteurs", contact_name: "M. Fabre", email: "contact@securifeu.fr", phone: "04 91 00 00 01", city: "Marseille" },
-  { id: "prov-2", name: "ElecCheck Pro", provider_type: "Maintenance électrique", contact_name: "Mme Roy", email: "contact@eleccheck.fr", phone: "04 72 00 00 02", city: "Lyon" },
-  { id: "prov-3", name: "Garage Transport Services", provider_type: "Maintenance véhicules", contact_name: "M. Léon", email: "contact@gts.fr", phone: "04 72 00 00 03", city: "Vénissieux" },
-  { id: "prov-4", name: "Médecine du Travail Régionale", provider_type: "Médecine du travail", contact_name: "Dr. Meyer", email: "contact@mtr.fr", phone: "04 78 00 00 04", city: "Lyon" },
-  { id: "prov-5", name: "Formation Sécurité Plus", provider_type: "Organisme de formation", contact_name: "Mme Aziz", email: "contact@fsp.fr", phone: "04 91 00 00 05", city: "Marseille" },
-  { id: "prov-6", name: "Assurance Pro Entreprise", provider_type: "Assurance", contact_name: "M. Blanc", email: "contact@ape.fr", phone: "01 40 00 00 06", city: "Paris" },
-].map((p) => ({ ...p, company_id: C, address: null, country: "France", notes: null, is_active: true, ...archivable }));
+  { id: "prov-1", name: "SécuriFeu Contrôles", provider_type: "Maintenance extincteurs", contact_name: "M. Fabre", email: "contact@securifeu.fr", phone: "04 91 00 00 01", city: "Marseille", site_id: "site-1", insurance: 20, followup: true },
+  { id: "prov-2", name: "ElecCheck Pro", provider_type: "Maintenance électrique", contact_name: "Mme Roy", email: "contact@eleccheck.fr", phone: "04 72 00 00 02", city: "Lyon", site_id: "site-3", insurance: 200, followup: false },
+  { id: "prov-3", name: "Garage Transport Services", provider_type: "Maintenance véhicules", contact_name: "M. Léon", email: "contact@gts.fr", phone: "04 72 00 00 03", city: "Vénissieux", site_id: "site-3", insurance: 150, followup: false },
+  { id: "prov-4", name: "Médecine du Travail Régionale", provider_type: "Médecine du travail", contact_name: "Dr. Meyer", email: "contact@mtr.fr", phone: "04 78 00 00 04", city: "Lyon", site_id: "site-2", insurance: 300, followup: false },
+  { id: "prov-5", name: "Formation Sécurité Plus", provider_type: "Organisme de formation", contact_name: "Mme Aziz", email: "contact@fsp.fr", phone: "04 91 00 00 05", city: "Marseille", site_id: "site-1", insurance: 90, followup: false },
+  { id: "prov-6", name: "Assurance Pro Entreprise", provider_type: "Assurance", contact_name: "M. Blanc", email: "contact@ape.fr", phone: "01 40 00 00 06", city: "Paris", site_id: null, insurance: -10, followup: true },
+].map((p) => ({
+  id: p.id, name: p.name, provider_type: p.provider_type, contact_name: p.contact_name, email: p.email, phone: p.phone, city: p.city,
+  company_id: C, address: null, country: "France", notes: null, is_active: true,
+  site_id: p.site_id, responsible_id: "p-qhse", insurance_expiry: iso(p.insurance), priority: p.insurance < 0 ? "CRITICAL" : "MEDIUM", needs_followup: p.followup,
+  ...archivable,
+}));
 
 // --- Contrats ----------------------------------------------------------
 export const contracts: Row[] = [
@@ -346,11 +435,27 @@ export const non_conformities: Row[] = NC_SEED.map((n) => ({
   corrective_action_id: n.corrective ?? null, document_id: null, ...archivable,
 }));
 
+// --- Incidents & observations sécurité ---------------------------------
+type IncSeed = { id: string; type: string; title: string; site_id: string | null; zone: string | null; severity: string; status: string; occurred: number; corrective?: string };
+const INC_SEED: IncSeed[] = [
+  { id: "inc-1", type: "NEAR_MISS", title: "Presque-accident chariot élévateur sur zone de circulation", site_id: "site-1", zone: "Zone caristes", severity: "HIGH", status: "OPEN", occurred: -4 },
+  { id: "inc-2", type: "OBSERVATION", title: "Port des EPI non respecté au quai", site_id: "site-1", zone: "Quai 3", severity: "MEDIUM", status: "IN_PROGRESS", occurred: -9, corrective: "act-3" },
+  { id: "inc-3", type: "INCIDENT", title: "Choc palette contre rack de stockage", site_id: "site-3", zone: "Stockage A", severity: "MEDIUM", status: "OPEN", occurred: -2 },
+];
+export const incidents: Row[] = INC_SEED.map((n) => ({
+  id: n.id, company_id: C, type: n.type, title: n.title, description: "Événement terrain à traiter.",
+  site_id: n.site_id, zone: n.zone, occurred_at: iso(n.occurred), severity: n.severity, status: n.status,
+  responsible_id: "p-qhse", supervisor_id: "p-expl", related_entity_type: n.site_id ? "SITE" : null,
+  related_entity_id: n.site_id, corrective_action_id: n.corrective ?? null, document_id: null, ...archivable,
+}));
+
 // Registre des tables pour le client mock
 export const TABLES: Record<string, Row[]> = {
   companies: [company],
   profiles,
   employees,
+  employee_certifications,
+  employee_absences,
   epi,
   equipments,
   vehicles,
@@ -365,6 +470,7 @@ export const TABLES: Record<string, Row[]> = {
   contracts,
   audits,
   non_conformities,
+  incidents,
   audit_logs: [],
   pilot_leads: [],
 };

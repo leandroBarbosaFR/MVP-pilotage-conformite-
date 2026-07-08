@@ -67,7 +67,7 @@ export enum RelatedEntityType {
   CONTRACT = "CONTRACT",
   PROVIDER = "PROVIDER",
   AUDIT = "AUDIT",
-  NON_Pilotix = "NON_Pilotix",
+  NON_CONFORMITY = "NON_CONFORMITY",
   ACTION = "ACTION",
 }
 
@@ -164,7 +164,7 @@ export const RELATED_ENTITY_LABELS: Record<RelatedEntityType, string> = {
   [RelatedEntityType.CONTRACT]: "Contrat",
   [RelatedEntityType.PROVIDER]: "Prestataire",
   [RelatedEntityType.AUDIT]: "Audit",
-  [RelatedEntityType.NON_Pilotix]: "Non-conformité",
+  [RelatedEntityType.NON_CONFORMITY]: "Non-conformité",
   [RelatedEntityType.ACTION]: "Action",
 };
 
@@ -230,6 +230,28 @@ export const AUDIT_TYPES = [
   "Contrôle réglementaire", "Visite sécurité", "Autre",
 ];
 
+export const DOCUMENT_TYPES = [
+  "Rapport de vérification", "Certificat", "Assurance", "Contrat de maintenance",
+  "Contrat de leasing", "Attestation", "Photo", "Justificatif", "Registre",
+  "Plan", "Document administratif", "Document salarié", "Document véhicule",
+  "Document prestataire", "Autre",
+];
+
+/** Modules pour filtrer les documents (clé = filtre getDocuments.module). */
+export const DOCUMENT_MODULE_OPTIONS: { key: string; label: string }[] = [
+  { key: "sites", label: "Sites et installations" },
+  { key: "equipments", label: "Équipements et engins" },
+  { key: "vehicles", label: "Véhicules et flotte" },
+  { key: "personnel", label: "Personnel" },
+  { key: "providers", label: "Prestataires" },
+  { key: "contracts", label: "Contrats" },
+  { key: "controls", label: "Contrôles réglementaires" },
+  { key: "audits", label: "Audits" },
+  { key: "incidents", label: "Incidents" },
+  { key: "non_conformities", label: "Non-conformités" },
+  { key: "epi", label: "EPI" },
+];
+
 export const NC_SOURCE_TYPES = [
   "Audit", "Inspection", "Contrôle", "Document", "Équipement", "Véhicule",
   "Salarié", "Site", "Manuel",
@@ -290,6 +312,123 @@ export const NC_STATUS_TONE: Record<string, UiTone> = {
   VERIFIED: "ok",
   CLOSED: "ok",
   ARCHIVED: "none",
+};
+
+// --- Personnel : certifications, aptitude (migration 0008) ------------
+
+export enum CertificationType {
+  FORMATION = "FORMATION",
+  HABILITATION = "HABILITATION",
+  MEDICAL_VISIT = "MEDICAL_VISIT",
+  LICENSE = "LICENSE",
+  PPE = "PPE",
+  AUTHORIZATION = "AUTHORIZATION",
+  APTITUDE = "APTITUDE",
+  OTHER = "OTHER",
+}
+
+export const CERTIFICATION_TYPE_LABELS: Record<CertificationType, string> = {
+  [CertificationType.FORMATION]: "Formation",
+  [CertificationType.HABILITATION]: "Habilitation",
+  [CertificationType.MEDICAL_VISIT]: "Visite médicale",
+  [CertificationType.LICENSE]: "Permis",
+  [CertificationType.PPE]: "EPI",
+  [CertificationType.AUTHORIZATION]: "Autorisation",
+  [CertificationType.APTITUDE]: "Aptitude",
+  [CertificationType.OTHER]: "Autre",
+};
+
+/** Catégories fréquentes proposées par type de certification (champ libre autorisé). */
+export const CERTIFICATION_CATEGORIES = [
+  "CACES R482", "CACES R485", "CACES R486", "CACES R489", "CACES R490",
+  "Habilitation électrique B0/H0", "Habilitation électrique BR", "Habilitation électrique BC",
+  "FIMO", "FCO", "Carte conducteur", "ADR",
+  "SST", "Formation incendie", "Gestes et postures", "Accueil sécurité",
+  "Autorisation de conduite", "Visite médicale", "Visite de reprise", "Autre",
+];
+
+export enum AptitudeStatus {
+  FIT = "FIT",
+  FIT_WITH_RESTRICTIONS = "FIT_WITH_RESTRICTIONS",
+  TEMP_UNFIT = "TEMP_UNFIT",
+  UNFIT = "UNFIT",
+}
+
+export const APTITUDE_LABELS: Record<AptitudeStatus, string> = {
+  [AptitudeStatus.FIT]: "Apte",
+  [AptitudeStatus.FIT_WITH_RESTRICTIONS]: "Apte avec restrictions",
+  [AptitudeStatus.TEMP_UNFIT]: "Inapte temporaire",
+  [AptitudeStatus.UNFIT]: "Inapte",
+};
+
+export const APTITUDE_TONE: Record<AptitudeStatus, UiTone> = {
+  [AptitudeStatus.FIT]: "ok",
+  [AptitudeStatus.FIT_WITH_RESTRICTIONS]: "warn",
+  [AptitudeStatus.TEMP_UNFIT]: "warn",
+  [AptitudeStatus.UNFIT]: "danger",
+};
+
+/** Métier / fonction terrain (champ texte employees.job_family). */
+export const JOB_FAMILIES = [
+  "Conducteur", "Cariste", "Agent de quai", "Exploitation",
+  "Maintenance", "Administratif", "Autre",
+];
+
+/** Type de contrat salarié (champ texte employees.contract_type). */
+export const EMPLOYEE_CONTRACT_TYPES = [
+  "CDI", "CDD", "Intérim", "Alternance", "Prestataire", "Autre",
+];
+
+/** Valeurs de statut de présence proposées (employees.status / absences.work_status). */
+export const WORK_STATUS_OPTIONS = [
+  "actif", "suspendu", "absent", "arret_maladie", "reprise_prevue", "sorti",
+];
+
+/** Statut de présence du salarié (champ texte employees.status / absences.work_status). */
+export const WORK_STATUS_LABELS: Record<string, string> = {
+  en_poste: "En poste",
+  actif: "Actif",
+  absent: "Absent",
+  arret_maladie: "Arrêt maladie",
+  reprise_prevue: "Reprise prévue",
+  suspendu: "Suspendu",
+  sorti: "Sorti",
+  archive: "Archivé",
+};
+
+// --- Incidents (migration 0008) ---------------------------------------
+
+export enum IncidentType {
+  INCIDENT = "INCIDENT",
+  NEAR_MISS = "NEAR_MISS",
+  OBSERVATION = "OBSERVATION",
+}
+
+export const INCIDENT_TYPE_LABELS: Record<IncidentType, string> = {
+  [IncidentType.INCIDENT]: "Incident",
+  [IncidentType.NEAR_MISS]: "Presque-accident",
+  [IncidentType.OBSERVATION]: "Observation sécurité",
+};
+
+export enum IncidentStatus {
+  OPEN = "OPEN",
+  IN_PROGRESS = "IN_PROGRESS",
+  CLOSED = "CLOSED",
+  ARCHIVED = "ARCHIVED",
+}
+
+export const INCIDENT_STATUS_LABELS: Record<IncidentStatus, string> = {
+  [IncidentStatus.OPEN]: "Ouvert",
+  [IncidentStatus.IN_PROGRESS]: "En cours",
+  [IncidentStatus.CLOSED]: "Clôturé",
+  [IncidentStatus.ARCHIVED]: "Archivé",
+};
+
+export const INCIDENT_STATUS_TONE: Record<IncidentStatus, UiTone> = {
+  [IncidentStatus.OPEN]: "danger",
+  [IncidentStatus.IN_PROGRESS]: "warn",
+  [IncidentStatus.CLOSED]: "ok",
+  [IncidentStatus.ARCHIVED]: "none",
 };
 
 export const ACTION_STATUS_TONE: Record<ActionStatus, UiTone> = {

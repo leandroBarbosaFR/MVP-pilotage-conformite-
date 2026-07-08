@@ -106,6 +106,18 @@ export interface Vehicle extends ArchivableRow {
   brand: string | null;
   model: string | null;
   service_date: string | null;
+  site_id: string | null;
+  main_driver_id: string | null;
+  fleet_manager_id: string | null;
+  insurance_expiry: string | null;
+  technical_inspection_expiry: string | null;
+  last_maintenance: string | null;
+  next_maintenance: string | null;
+  mileage: number | null;
+  tachograph_expiry: string | null;
+  extinguisher_expiry: string | null;
+  priority: PriorityLevel | null;
+  notes: string | null;
   status: string;
   responsible_id: string | null;
   supervisor_id: string | null;
@@ -117,6 +129,13 @@ export interface Employee extends ArchivableRow {
   first_name: string;
   last_name: string;
   job_title: string | null;
+  job_family: string | null;
+  service: string | null;
+  site_id: string | null;
+  contract_type: string | null;
+  hire_date: string | null;
+  contract_end_date: string | null;
+  exit_date: string | null;
   email: string | null;
   phone: string | null;
   status: string;
@@ -129,8 +148,17 @@ export interface Equipment extends ArchivableRow {
   company_id: string;
   name: string;
   equipment_type: string | null;
+  category: string | null;
+  serial_number: string | null;
   site: string | null;
+  site_id: string | null;
   internal_reference: string | null;
+  last_check_date: string | null;
+  next_check_date: string | null;
+  frequency: string | null;
+  provider_id: string | null;
+  priority: PriorityLevel | null;
+  notes: string | null;
   status: string;
   responsible_id: string | null;
   supervisor_id: string | null;
@@ -173,7 +201,7 @@ export type RelatedEntityType =
   | "CONTRACT"
   | "PROVIDER"
   | "AUDIT"
-  | "NON_Pilotix"
+  | "NON_CONFORMITY"
   | "ACTION";
 
 export interface Obligation extends ArchivableRow {
@@ -215,6 +243,15 @@ export interface DocumentRow extends ArchivableRow {
   employee_id: string | null;
   equipment_id: string | null;
   epi_id: string | null;
+  site_id: string | null;
+  provider_id: string | null;
+  contract_id: string | null;
+  audit_id: string | null;
+  incident_id: string | null;
+  non_conformity_id: string | null;
+  certification_id: string | null;
+  related_entity_type: string | null;
+  related_entity_id: string | null;
   responsible_id: string | null;
   supervisor_id: string | null;
   uploaded_by: string | null;
@@ -295,6 +332,11 @@ export interface Provider extends ArchivableRow {
   country: string | null;
   notes: string | null;
   is_active: boolean;
+  responsible_id: string | null;
+  site_id: string | null;
+  insurance_expiry: string | null;
+  priority: PriorityLevel | null;
+  needs_followup: boolean;
 }
 
 export interface Contract extends ArchivableRow {
@@ -354,6 +396,79 @@ export interface NonPilotix extends ArchivableRow {
   responsible_id: string | null;
   supervisor_id: string | null;
   status: NcStatus;
+  corrective_action_id: string | null;
+  document_id: string | null;
+}
+
+export type CertificationType =
+  | "FORMATION"
+  | "HABILITATION"
+  | "MEDICAL_VISIT"
+  | "LICENSE"
+  | "PPE"
+  | "AUTHORIZATION"
+  | "APTITUDE"
+  | "OTHER";
+
+export type AptitudeStatus =
+  | "FIT"
+  | "FIT_WITH_RESTRICTIONS"
+  | "TEMP_UNFIT"
+  | "UNFIT";
+
+export type IncidentType = "INCIDENT" | "NEAR_MISS" | "OBSERVATION";
+export type IncidentStatus = "OPEN" | "IN_PROGRESS" | "CLOSED" | "ARCHIVED";
+
+export interface EmployeeCertification extends ArchivableRow {
+  id: string;
+  company_id: string;
+  employee_id: string;
+  type: CertificationType;
+  category: string | null;
+  title: string;
+  obtained_date: string | null;
+  expiry_date: string | null;
+  status: ObligationStatus;
+  priority: PriorityLevel;
+  document_id: string | null;
+  responsible_id: string | null;
+  supervisor_id: string | null;
+  notes: string | null;
+}
+
+export interface EmployeeAbsence extends ArchivableRow {
+  id: string;
+  company_id: string;
+  employee_id: string;
+  is_sick_leave: boolean;
+  start_date: string | null;
+  expected_end_date: string | null;
+  return_date: string | null;
+  work_status: string;
+  aptitude: AptitudeStatus | null;
+  restrictions: string | null;
+  next_medical_visit: string | null;
+  return_visit_required: boolean;
+  document_id: string | null;
+  responsible_id: string | null;
+  internal_notes: string | null;
+}
+
+export interface Incident extends ArchivableRow {
+  id: string;
+  company_id: string;
+  type: IncidentType;
+  title: string;
+  description: string | null;
+  site_id: string | null;
+  zone: string | null;
+  occurred_at: string | null;
+  severity: PriorityLevel;
+  status: IncidentStatus;
+  responsible_id: string | null;
+  supervisor_id: string | null;
+  related_entity_type: RelatedEntityType | null;
+  related_entity_id: string | null;
   corrective_action_id: string | null;
   document_id: string | null;
 }

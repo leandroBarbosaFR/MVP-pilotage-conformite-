@@ -13,6 +13,18 @@ const IMPORT_STATUS: Record<ImportStatus, { status: ComplianceStatus; label: str
   en_attente: { status: "warn", label: "En attente" },
 };
 
+const IMPORT_TYPE_LABELS: Record<string, string> = {
+  vehicles: "Véhicules",
+  employees: "Personnel",
+  equipments: "Équipements",
+  obligations: "Obligations",
+  sites: "Sites",
+  providers: "Prestataires",
+  contracts: "Contrats",
+  actions: "Actions",
+  certifications: "Habilitations",
+};
+
 export default async function ImportsPage() {
   const { company } = await requireContext();
   const history = await getImportHistory(company.id);
@@ -47,7 +59,7 @@ export default async function ImportsPage() {
               return (
                 <TR key={imp.id}>
                   <TD className="font-medium">{imp.file_name}</TD>
-                  <TD>{imp.import_type}</TD>
+                  <TD>{IMPORT_TYPE_LABELS[imp.import_type] ?? imp.import_type}</TD>
                   <TD>
                     <StatusBadge status={s.status} label={s.label} />
                   </TD>

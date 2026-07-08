@@ -17,11 +17,28 @@ const ARCHIVABLE = new Set([
   "contracts",
   "audits",
   "non_conformities",
+  "employee_certifications",
+  "employee_absences",
+  "incidents",
 ]);
 
 function s(v: FormDataEntryValue | null): string | null {
   const str = String(v ?? "").trim();
   return str === "" ? null : str;
+}
+
+function bool(v: FormDataEntryValue | null): boolean {
+  const str = String(v ?? "").trim().toLowerCase();
+  return str === "on" || str === "1" || str === "true" || str === "yes";
+}
+
+/** Statut de conformité déduit d'une date d'expiration (certifications/documents). */
+function statusFromExpiry(expiry: string | null): string {
+  if (!expiry) return "COMPLIANT";
+  const days = Math.round((new Date(expiry).getTime() - Date.now()) / 86_400_000);
+  if (days < 0) return "EXPIRED";
+  if (days <= 30) return "EXPIRING_SOON";
+  return "COMPLIANT";
 }
 
 /** Archive / désarchive un enregistrement (aucune suppression définitive). */
@@ -152,6 +169,7 @@ export async function updateActionStatus(id: string, status: string) {
 export async function createVehicle(formData: FormData) {
   const { company } = await requireContext();
   const supabase = await createClient();
+  const mileage = s(formData.get("mileage"));
   await supabase.from("vehicles").insert({
     company_id: company.id,
     registration_number: s(formData.get("registration_number")) ?? "—",
@@ -159,11 +177,24 @@ export async function createVehicle(formData: FormData) {
     brand: s(formData.get("brand")),
     model: s(formData.get("model")),
     service_date: s(formData.get("service_date")),
+    site_id: s(formData.get("site_id")),
+    main_driver_id: s(formData.get("main_driver_id")),
+    fleet_manager_id: s(formData.get("fleet_manager_id")),
+    insurance_expiry: s(formData.get("insurance_expiry")),
+    technical_inspection_expiry: s(formData.get("technical_inspection_expiry")),
+    last_maintenance: s(formData.get("last_maintenance")),
+    next_maintenance: s(formData.get("next_maintenance")),
+    mileage: mileage ? Number(mileage) : null,
+    tachograph_expiry: s(formData.get("tachograph_expiry")),
+    extinguisher_expiry: s(formData.get("extinguisher_expiry")),
+    priority: s(formData.get("priority")) ?? "MEDIUM",
+    notes: s(formData.get("notes")),
     status: s(formData.get("status")) ?? "actif",
     responsible_id: s(formData.get("responsible_id")),
     supervisor_id: s(formData.get("supervisor_id")),
   });
   revalidatePath("/dashboard/vehicles");
+  revalidatePath("/dashboard");
 }
 
 export async function createEmployee(formData: FormData) {
@@ -174,6 +205,12 @@ export async function createEmployee(formData: FormData) {
     first_name: s(formData.get("first_name")) ?? "—",
     last_name: s(formData.get("last_name")) ?? "—",
     job_title: s(formData.get("job_title")),
+    job_family: s(formData.get("job_family")),
+    service: s(formData.get("service")),
+    site_id: s(formData.get("site_id")),
+    contract_type: s(formData.get("contract_type")),
+    hire_date: s(formData.get("hire_date")),
+    contract_end_date: s(formData.get("contract_end_date")),
     email: s(formData.get("email")),
     phone: s(formData.get("phone")),
     status: s(formData.get("status")) ?? "actif",
@@ -183,6 +220,57 @@ export async function createEmployee(formData: FormData) {
   revalidatePath("/dashboard/employees");
 }
 
+/** Certification / habilitation / visite médicale / permis / EPI d'un salarié. */
+export async function createCertification(formData: FormData) {
+  const { company } = await requireContext();
+  const supabase = await createClient();
+  const empId = s(formData.get("employee_id"));
+  const expiry = s(formData.get("expiry_date"));
+  await supabase.from("employee_certifications").insert({
+    company_id: company.id,
+    employee_id: empId,
+    type: s(formData.get("type")) ?? "OTHER",
+    category: s(formData.get("category")),
+    title: s(formData.get("title")) ?? "Sans titre",
+    obtained_date: s(formData.get("obtained_date")),
+    expiry_date: expiry,
+    status: s(formData.get("status")) ?? statusFromExpiry(expiry),
+    priority: s(formData.get("priority")) ?? "MEDIUM",
+    responsible_id: s(formData.get("responsible_id")),
+    supervisor_id: s(formData.get("supervisor_id")),
+    notes: s(formData.get("notes")),
+  });
+  if (empId) revalidatePath(`/dashboard/employees/${empId}`);
+  revalidatePath("/dashboard/employees");
+  revalidatePath("/dashboard/employees/echeances");
+  revalidatePath("/dashboard");
+}
+
+/** Absence / aptitude d'un salarié (sans diagnostic médical). */
+export async function createAbsence(formData: FormData) {
+  const { company } = await requireContext();
+  const supabase = await createClient();
+  const empId = s(formData.get("employee_id"));
+  await supabase.from("employee_absences").insert({
+    company_id: company.id,
+    employee_id: empId,
+    is_sick_leave: bool(formData.get("is_sick_leave")),
+    start_date: s(formData.get("start_date")),
+    expected_end_date: s(formData.get("expected_end_date")),
+    return_date: s(formData.get("return_date")),
+    work_status: s(formData.get("work_status")) ?? "absent",
+    aptitude: s(formData.get("aptitude")),
+    restrictions: s(formData.get("restrictions")),
+    next_medical_visit: s(formData.get("next_medical_visit")),
+    return_visit_required: bool(formData.get("return_visit_required")),
+    internal_notes: s(formData.get("internal_notes")),
+    responsible_id: s(formData.get("responsible_id")),
+  });
+  if (empId) revalidatePath(`/dashboard/employees/${empId}`);
+  revalidatePath("/dashboard/employees");
+  revalidatePath("/dashboard");
+}
+
 export async function createEquipment(formData: FormData) {
   const { company } = await requireContext();
   const supabase = await createClient();
@@ -190,13 +278,22 @@ export async function createEquipment(formData: FormData) {
     company_id: company.id,
     name: s(formData.get("name")) ?? "—",
     equipment_type: s(formData.get("equipment_type")),
-    site: s(formData.get("site")),
+    category: s(formData.get("category")),
+    serial_number: s(formData.get("serial_number")),
+    site_id: s(formData.get("site_id")),
     internal_reference: s(formData.get("internal_reference")),
+    last_check_date: s(formData.get("last_check_date")),
+    next_check_date: s(formData.get("next_check_date")),
+    frequency: s(formData.get("frequency")),
+    provider_id: s(formData.get("provider_id")),
+    priority: s(formData.get("priority")) ?? "MEDIUM",
+    notes: s(formData.get("notes")),
     status: s(formData.get("status")) ?? "actif",
     responsible_id: s(formData.get("responsible_id")),
     supervisor_id: s(formData.get("supervisor_id")),
   });
   revalidatePath("/dashboard/equipments");
+  revalidatePath("/dashboard");
 }
 
 export async function createEpi(formData: FormData) {
@@ -229,6 +326,14 @@ export async function createDocument(input: {
   employee_id?: string | null;
   equipment_id?: string | null;
   epi_id?: string | null;
+  site_id?: string | null;
+  provider_id?: string | null;
+  contract_id?: string | null;
+  audit_id?: string | null;
+  incident_id?: string | null;
+  non_conformity_id?: string | null;
+  certification_id?: string | null;
+  responsible_id?: string | null;
 }) {
   const { company, profile } = await requireContext();
   const supabase = await createClient();
@@ -247,6 +352,14 @@ export async function createDocument(input: {
     employee_id: input.employee_id ?? null,
     equipment_id: input.equipment_id ?? null,
     epi_id: input.epi_id ?? null,
+    site_id: input.site_id ?? null,
+    provider_id: input.provider_id ?? null,
+    contract_id: input.contract_id ?? null,
+    audit_id: input.audit_id ?? null,
+    incident_id: input.incident_id ?? null,
+    non_conformity_id: input.non_conformity_id ?? null,
+    certification_id: input.certification_id ?? null,
+    responsible_id: input.responsible_id ?? null,
     uploaded_by: profile.id,
   });
   revalidatePath("/dashboard/documents");
@@ -290,9 +403,15 @@ export async function createProvider(formData: FormData) {
     address: s(formData.get("address")),
     city: s(formData.get("city")),
     country: s(formData.get("country")),
+    site_id: s(formData.get("site_id")),
+    responsible_id: s(formData.get("responsible_id")),
+    insurance_expiry: s(formData.get("insurance_expiry")),
+    priority: s(formData.get("priority")) ?? "MEDIUM",
+    needs_followup: bool(formData.get("needs_followup")),
     notes: s(formData.get("notes")),
   });
   revalidatePath("/dashboard/providers");
+  revalidatePath("/dashboard");
 }
 
 export async function createContract(formData: FormData) {
@@ -361,6 +480,64 @@ export async function createNonPilotix(formData: FormData) {
     status: s(formData.get("status")) ?? "OPEN",
   });
   revalidatePath("/dashboard/non-conformities");
+  revalidatePath("/dashboard");
+}
+
+export async function createIncident(formData: FormData) {
+  const { company } = await requireContext();
+  const supabase = await createClient();
+  await supabase.from("incidents").insert({
+    company_id: company.id,
+    type: s(formData.get("type")) ?? "INCIDENT",
+    title: s(formData.get("title")) ?? "Sans titre",
+    description: s(formData.get("description")),
+    site_id: s(formData.get("site_id")),
+    zone: s(formData.get("zone")),
+    occurred_at: s(formData.get("occurred_at")),
+    severity: s(formData.get("severity")) ?? "MEDIUM",
+    status: s(formData.get("status")) ?? "OPEN",
+    responsible_id: s(formData.get("responsible_id")),
+    supervisor_id: s(formData.get("supervisor_id")),
+    related_entity_type: s(formData.get("related_entity_type")) ?? (s(formData.get("site_id")) ? "SITE" : null),
+    related_entity_id: s(formData.get("related_entity_id")) ?? s(formData.get("site_id")),
+  });
+  revalidatePath("/dashboard/incidents");
+  revalidatePath("/dashboard");
+}
+
+/** Crée une action corrective rattachée à un incident. */
+export async function createIncidentCorrectiveAction(incidentId: string) {
+  const { company, profile } = await requireContext();
+  const supabase = await createClient();
+  const { data: inc } = await supabase.from("incidents").select("*").eq("id", incidentId).single();
+  if (!inc) return;
+  const { data: created } = await supabase
+    .from("actions")
+    .insert({
+      company_id: company.id,
+      title: `Corriger : ${inc.title}`,
+      description: inc.description,
+      category: "Incident",
+      related_entity_type: inc.related_entity_type ?? (inc.site_id ? "SITE" : null),
+      related_entity_id: inc.related_entity_id ?? inc.site_id,
+      source: `Incident (${inc.type ?? "—"})`,
+      status: "TODO",
+      priority: inc.severity ?? "MEDIUM",
+      assigned_to: inc.responsible_id,
+      supervisor_id: inc.supervisor_id,
+      created_by: profile.id,
+    })
+    .select("id")
+    .single();
+  if (created?.id) {
+    await supabase
+      .from("incidents")
+      .update({ corrective_action_id: created.id, status: "IN_PROGRESS" })
+      .eq("id", incidentId);
+  }
+  revalidatePath("/dashboard/incidents");
+  revalidatePath(`/dashboard/incidents/${incidentId}`);
+  revalidatePath("/dashboard/actions");
   revalidatePath("/dashboard");
 }
 

@@ -8,13 +8,27 @@ import { FileInput, Label, Select } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, THead, TR, TH, TD } from "@/components/ui/table";
 
-type ImportType = "vehicles" | "employees" | "equipments" | "obligations";
+type ImportType =
+  | "vehicles"
+  | "employees"
+  | "equipments"
+  | "obligations"
+  | "sites"
+  | "providers"
+  | "contracts"
+  | "actions"
+  | "certifications";
 
 const TYPE_LABELS: Record<ImportType, string> = {
-  vehicles: "Véhicules",
-  employees: "Salariés",
-  equipments: "Équipements",
-  obligations: "Obligations",
+  sites: "Sites et installations",
+  equipments: "Équipements et engins",
+  vehicles: "Véhicules et flotte",
+  employees: "Personnel",
+  certifications: "Habilitations / formations / visites médicales",
+  providers: "Prestataires",
+  contracts: "Contrats",
+  obligations: "Obligations / contrôles",
+  actions: "Actions",
 };
 
 interface TargetField {
@@ -30,25 +44,71 @@ const TARGET_FIELDS: Record<ImportType, TargetField[]> = {
     { key: "brand", label: "Marque" },
     { key: "model", label: "Modèle" },
     { key: "service_date", label: "Date de mise en service" },
+    { key: "technical_inspection_expiry", label: "Contrôle technique (expiration)" },
+    { key: "insurance_expiry", label: "Assurance (expiration)" },
   ],
   employees: [
     { key: "first_name", label: "Prénom", required: true },
     { key: "last_name", label: "Nom", required: true },
     { key: "job_title", label: "Poste" },
+    { key: "job_family", label: "Métier / fonction" },
+    { key: "contract_type", label: "Type de contrat" },
     { key: "email", label: "E-mail" },
     { key: "phone", label: "Téléphone" },
   ],
   equipments: [
     { key: "name", label: "Nom", required: true },
     { key: "equipment_type", label: "Type d'équipement" },
+    { key: "category", label: "Catégorie" },
     { key: "site", label: "Site" },
     { key: "internal_reference", label: "Référence interne" },
+    { key: "next_check_date", label: "Prochain contrôle" },
   ],
   obligations: [
     { key: "title", label: "Titre", required: true },
     { key: "category", label: "Catégorie" },
     { key: "due_date", label: "Échéance" },
     { key: "priority", label: "Priorité" },
+  ],
+  sites: [
+    { key: "name", label: "Nom", required: true },
+    { key: "site_type", label: "Type de site" },
+    { key: "address", label: "Adresse" },
+    { key: "city", label: "Ville" },
+    { key: "postal_code", label: "Code postal" },
+    { key: "country", label: "Pays" },
+    { key: "activity_type", label: "Activité" },
+  ],
+  providers: [
+    { key: "name", label: "Nom", required: true },
+    { key: "provider_type", label: "Type de prestataire" },
+    { key: "contact_name", label: "Contact" },
+    { key: "email", label: "E-mail" },
+    { key: "phone", label: "Téléphone" },
+    { key: "city", label: "Ville" },
+    { key: "insurance_expiry", label: "Assurance (expiration)" },
+  ],
+  contracts: [
+    { key: "title", label: "Titre", required: true },
+    { key: "contract_type", label: "Type de contrat" },
+    { key: "start_date", label: "Date de début" },
+    { key: "end_date", label: "Date de fin" },
+    { key: "renewal_date", label: "Renouvellement" },
+  ],
+  actions: [
+    { key: "title", label: "Titre", required: true },
+    { key: "description", label: "Description" },
+    { key: "due_date", label: "Échéance" },
+    { key: "priority", label: "Priorité" },
+  ],
+  certifications: [
+    { key: "employee_email", label: "E-mail du salarié" },
+    { key: "employee_name", label: "Nom du salarié (Prénom Nom)" },
+    { key: "type", label: "Type (FORMATION, HABILITATION, MEDICAL_VISIT…)" },
+    { key: "category", label: "Catégorie (CACES R489, FIMO…)" },
+    { key: "title", label: "Intitulé", required: true },
+    { key: "obtained_date", label: "Date d'obtention" },
+    { key: "expiry_date", label: "Date d'expiration" },
   ],
 };
 
@@ -60,7 +120,7 @@ export function ImportPanel({ companyId }: { companyId: string }) {
   const [dataRows, setDataRows] = useState<string[][]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [pending, start] = useTransition();
-  const [result, setResult] = useState<{ imported: number; failed: number; total: number } | null>(
+  const [result, setResult] = useState<{ imported: number; failed: number; skipped: number; total: number } | null>(
     null
   );
   const [error, setError] = useState<string | null>(null);
@@ -241,8 +301,8 @@ export function ImportPanel({ companyId }: { companyId: string }) {
         {error ? <p className="text-sm text-status-danger">{error}</p> : null}
         {result ? (
           <p className="text-sm text-status-ok">
-            Import terminé : {result.imported} importée(s), {result.failed} en échec sur{" "}
-            {result.total} ligne(s).
+            Import terminé : {result.imported} importée(s), {result.skipped} doublon(s) ignoré(s),{" "}
+            {result.failed} en échec sur {result.total} ligne(s).
           </p>
         ) : null}
       </CardContent>

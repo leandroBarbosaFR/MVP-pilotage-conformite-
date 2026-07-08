@@ -20,6 +20,7 @@ export type AppModule =
   | "providers"
   | "contracts"
   | "audits"
+  | "incidents"
   | "non_conformities"
   | "imports"
   | "archives"
@@ -28,12 +29,15 @@ export type AppModule =
 
 export type AppEntity =
   | "employees"
+  | "certifications"
+  | "absences"
   | "epi"
   | "equipments"
   | "vehicles"
   | "obligations"
   | "documents"
-  | "actions";
+  | "actions"
+  | "incidents";
 
 const ALL = "all" as const;
 
@@ -43,12 +47,12 @@ const MODULE_ACCESS: Record<UserRole, AppModule[] | typeof ALL> = {
   QHSE_MANAGER: [
     "dashboard", "personnel", "epi", "equipments", "vehicles", "sites", "controls",
     "documents", "actions", "alerts", "providers", "contracts", "audits",
-    "non_conformities", "imports", "archives", "reports",
+    "incidents", "non_conformities", "imports", "archives", "reports",
   ],
   HR_MANAGER: ["dashboard", "personnel", "documents", "actions", "alerts", "archives"],
-  MAINTENANCE_MANAGER: ["dashboard", "equipments", "sites", "controls", "documents", "actions", "alerts", "providers", "non_conformities", "archives"],
+  MAINTENANCE_MANAGER: ["dashboard", "equipments", "sites", "controls", "documents", "actions", "alerts", "providers", "incidents", "non_conformities", "archives"],
   FLEET_MANAGER: ["dashboard", "vehicles", "documents", "actions", "alerts", "providers", "contracts", "archives"],
-  OPERATIONS_MANAGER: ["dashboard", "personnel", "equipments", "vehicles", "sites", "actions", "alerts", "contracts", "audits", "non_conformities", "reports"],
+  OPERATIONS_MANAGER: ["dashboard", "personnel", "equipments", "vehicles", "sites", "actions", "alerts", "contracts", "audits", "incidents", "non_conformities", "reports"],
   SUPERVISOR: ["dashboard", "actions", "alerts", "documents"],
   USER: ["dashboard", "actions", "alerts", "documents"],
 };
@@ -56,11 +60,11 @@ const MODULE_ACCESS: Record<UserRole, AppModule[] | typeof ALL> = {
 /** Entités que le rôle peut créer / modifier / archiver. */
 const WRITE_ENTITIES: Record<UserRole, AppEntity[] | typeof ALL> = {
   ADMIN: ALL,
-  QHSE_MANAGER: ["obligations", "documents", "actions", "equipments", "epi"],
-  HR_MANAGER: ["employees", "documents", "actions"],
-  MAINTENANCE_MANAGER: ["equipments", "obligations", "documents", "actions"],
+  QHSE_MANAGER: ["obligations", "documents", "actions", "equipments", "epi", "certifications", "incidents"],
+  HR_MANAGER: ["employees", "documents", "actions", "certifications", "absences"],
+  MAINTENANCE_MANAGER: ["equipments", "obligations", "documents", "actions", "incidents"],
   FLEET_MANAGER: ["vehicles", "documents", "actions"],
-  OPERATIONS_MANAGER: ["actions"],
+  OPERATIONS_MANAGER: ["actions", "absences", "incidents"],
   SUPERVISOR: ["actions"],
   USER: ["actions", "documents"],
 };

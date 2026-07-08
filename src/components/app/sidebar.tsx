@@ -26,6 +26,7 @@ import {
   ScrollIcon as Scroll,
   ClipboardTextIcon as ClipboardText,
   WarningIcon as Warning,
+  WarningOctagonIcon as WarningOctagon,
   CaretRightIcon as CaretRight,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
@@ -43,21 +44,22 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Modules métier",
     items: [
-      { href: "/dashboard/employees", label: "Personnel", icon: Users, module: "personnel" },
-      { href: "/dashboard/epi", label: "EPI", icon: HardHat, module: "epi" },
-      { href: "/dashboard/equipments", label: "Machines et équipements", icon: Gear, module: "equipments" },
-      { href: "/dashboard/vehicles", label: "Véhicules", icon: Truck, module: "vehicles" },
       { href: "/dashboard/sites", label: "Sites et installations", icon: Buildings, module: "sites" },
+      { href: "/dashboard/equipments", label: "Équipements et engins", icon: Gear, module: "equipments" },
+      { href: "/dashboard/vehicles", label: "Véhicules et flotte", icon: Truck, module: "vehicles" },
+      { href: "/dashboard/employees", label: "Personnel et habilitations", icon: Users, module: "personnel" },
+      { href: "/dashboard/epi", label: "EPI", icon: HardHat, module: "epi" },
     ],
   },
   {
     title: "Conformité",
     items: [
       { href: "/dashboard/obligations", label: "Contrôles réglementaires", icon: ShieldCheck, module: "controls" },
-      { href: "/dashboard/non-conformities", label: "Non-conformités", icon: Warning, module: "non_conformities" },
       { href: "/dashboard/audits", label: "Audits et inspections", icon: ClipboardText, module: "audits" },
+      { href: "/dashboard/incidents", label: "Incidents et observations", icon: WarningOctagon, module: "incidents" },
+      { href: "/dashboard/non-conformities", label: "Non-conformités", icon: Warning, module: "non_conformities" },
       { href: "/dashboard/contracts", label: "Contrats", icon: Scroll, module: "contracts" },
-      { href: "/dashboard/documents", label: "Documents", icon: FileText, module: "documents" },
+      { href: "/dashboard/documents", label: "Documents et preuves", icon: FileText, module: "documents" },
     ],
   },
   {

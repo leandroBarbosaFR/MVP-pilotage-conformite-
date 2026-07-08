@@ -14,6 +14,14 @@ export function UploadDocument({
   vehicleId,
   employeeId,
   equipmentId,
+  epiId,
+  siteId,
+  providerId,
+  contractId,
+  auditId,
+  incidentId,
+  nonConformityId,
+  certificationId,
   onDone,
 }: {
   companyId: string;
@@ -21,6 +29,14 @@ export function UploadDocument({
   vehicleId?: string;
   employeeId?: string;
   equipmentId?: string;
+  epiId?: string;
+  siteId?: string;
+  providerId?: string;
+  contractId?: string;
+  auditId?: string;
+  incidentId?: string;
+  nonConformityId?: string;
+  certificationId?: string;
   onDone?: () => void;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -69,6 +85,14 @@ export function UploadDocument({
           vehicle_id: vehicleId ?? null,
           employee_id: employeeId ?? null,
           equipment_id: equipmentId ?? null,
+          epi_id: epiId ?? null,
+          site_id: siteId ?? null,
+          provider_id: providerId ?? null,
+          contract_id: contractId ?? null,
+          audit_id: auditId ?? null,
+          incident_id: incidentId ?? null,
+          non_conformity_id: nonConformityId ?? null,
+          certification_id: certificationId ?? null,
         });
 
         setMessage({ type: "ok", text: "Document ajouté." });

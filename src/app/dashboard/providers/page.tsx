@@ -1,5 +1,5 @@
 import { requireContext } from "@/lib/queries/auth";
-import { getProviders } from "@/lib/queries/entities";
+import { getProviders, getProfiles, getSiteOptions } from "@/lib/queries/entities";
 import { createProvider } from "@/lib/actions/entities";
 import { PageHeader } from "@/components/app/page-header";
 import { AddPanel } from "@/components/app/add-panel";
@@ -9,63 +9,112 @@ import { ArchiveButton } from "@/components/app/archive-button";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { ListView } from "@/components/app/list-view";
-import { PROVIDER_TYPES } from "@/types/enums";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { PROVIDER_TYPES, PRIORITY_LABELS, PriorityLevel } from "@/types/enums";
+import { formatDate } from "@/lib/utils";
+import type { ComplianceStatus, Profile, Provider } from "@/lib/types/database";
 
 const PAGE_SIZE = 20;
+
+function providerStatus(p: Provider): { tone: ComplianceStatus; label: string } {
+  const today = new Date().toISOString().slice(0, 10);
+  const in30 = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
+  if (p.insurance_expiry && p.insurance_expiry < today) return { tone: "danger", label: "Assurance expirée" };
+  if (p.needs_followup) return { tone: "warn", label: "À relancer" };
+  if (p.insurance_expiry && p.insurance_expiry <= in30) return { tone: "warn", label: "Assurance à renouveler" };
+  return { tone: "ok", label: "À jour" };
+}
 
 export default async function ProvidersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; archived?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; archived?: string; page?: string; site?: string; followup?: string }>;
 }) {
   const sp = await searchParams;
   const { company } = await requireContext();
   const page = Math.max(1, Number(sp.page ?? 1));
   const includeArchived = sp.archived === "1";
 
-  const { rows, count } = await getProviders(company.id, { search: sp.q, includeArchived, page, pageSize: PAGE_SIZE });
+  const [{ rows, count }, profiles, sites] = await Promise.all([
+    getProviders(company.id, {
+      search: sp.q,
+      site: sp.site,
+      followup: sp.followup === "1",
+      includeArchived,
+      page,
+      pageSize: PAGE_SIZE,
+    }),
+    getProfiles(company.id),
+    getSiteOptions(company.id),
+  ]);
+
+  const statusBadge = (p: Provider) => {
+    const st = providerStatus(p);
+    return <StatusBadge status={st.tone} label={st.label} />;
+  };
 
   return (
     <div>
       <PageHeader
         title="Prestataires"
-        description="Organismes de contrôle, mainteneurs, assureurs, médecine du travail, formation…"
+        description="Entreprises externes : contrôle, maintenance, assurance, médecine du travail, formation — documents, contrats et relances."
         action={
           <AddPanel title="Nouveau prestataire">
-            <ProviderForm />
+            <ProviderForm profiles={profiles} sites={sites} />
           </AddPanel>
         }
       />
 
-      <ListToolbar basePath="/dashboard/providers" search={sp.q} includeArchived={includeArchived} />
+      <ListToolbar basePath="/dashboard/providers" search={sp.q} includeArchived={includeArchived}>
+        {sites.length > 0 ? (
+          <Select name="site" defaultValue={sp.site ?? ""} className="w-44">
+            <option value="">Tous les sites</option>
+            {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </Select>
+        ) : null}
+        <Select name="followup" defaultValue={sp.followup ?? ""} className="w-40">
+          <option value="">Tous</option>
+          <option value="1">À relancer</option>
+        </Select>
+      </ListToolbar>
 
       <ListView
         rows={rows}
         getKey={(p) => p.id}
+        href={(p) => `/dashboard/providers/${p.id}`}
         empty="Aucun prestataire."
         columns={[
           { header: "Nom", cell: (p) => <span className="font-medium">{p.name}</span> },
           { header: "Type", cell: (p) => p.provider_type ?? "—" },
           { header: "Contact", cell: (p) => p.contact_name ?? "—" },
-          { header: "Email", cell: (p) => p.email ?? "—" },
           { header: "Téléphone", cell: (p) => p.phone ?? "—" },
+          { header: "Assurance", cell: (p) => formatDate(p.insurance_expiry) },
+          { header: "Statut", cell: (p) => statusBadge(p) },
         ]}
         card={(p) => ({
           title: p.name,
+          badge: statusBadge(p),
           fields: [
             { label: "Type", value: p.provider_type ?? "—" },
             { label: "Contact", value: p.contact_name ?? "—" },
+            { label: "Assurance", value: formatDate(p.insurance_expiry) },
           ],
         })}
         actions={(p) => <ArchiveButton table="providers" id={p.id} archived={p.is_archived} />}
       />
 
-      <Pagination basePath="/dashboard/providers" page={page} count={count} pageSize={PAGE_SIZE} params={{ q: sp.q, archived: sp.archived }} />
+      <Pagination
+        basePath="/dashboard/providers"
+        page={page}
+        count={count}
+        pageSize={PAGE_SIZE}
+        params={{ q: sp.q, archived: sp.archived, site: sp.site, followup: sp.followup }}
+      />
     </div>
   );
 }
 
-function ProviderForm() {
+function ProviderForm({ profiles, sites }: { profiles: Profile[]; sites: { id: string; name: string }[] }) {
   return (
     <form action={createProvider} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <div className="sm:col-span-2">
@@ -76,6 +125,13 @@ function ProviderForm() {
         <Label>Type de prestataire</Label>
         <Select name="provider_type" defaultValue={PROVIDER_TYPES[0]}>
           {PROVIDER_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+        </Select>
+      </div>
+      <div>
+        <Label>Site concerné</Label>
+        <Select name="site_id" defaultValue="">
+          <option value="">Aucun</option>
+          {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </Select>
       </div>
       <div>
@@ -95,8 +151,25 @@ function ProviderForm() {
         <Input name="city" />
       </div>
       <div>
-        <Label>Pays</Label>
-        <Input name="country" defaultValue="France" />
+        <Label>Assurance (expiration)</Label>
+        <Input name="insurance_expiry" type="date" />
+      </div>
+      <div>
+        <Label>Priorité</Label>
+        <Select name="priority" defaultValue={PriorityLevel.MEDIUM}>
+          {Object.values(PriorityLevel).map((p) => <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>)}
+        </Select>
+      </div>
+      <div>
+        <Label>Responsable interne</Label>
+        <Select name="responsible_id" defaultValue="">
+          <option value="">Non assigné</option>
+          {profiles.map((p) => <option key={p.id} value={p.id}>{[p.first_name, p.last_name].filter(Boolean).join(" ") || p.email}</option>)}
+        </Select>
+      </div>
+      <div className="flex items-center gap-2">
+        <input id="needs_followup" name="needs_followup" type="checkbox" className="h-4 w-4 accent-accent" />
+        <Label className="mb-0" htmlFor="needs_followup">Relance à faire</Label>
       </div>
       <div className="sm:col-span-2">
         <Label>Notes</Label>

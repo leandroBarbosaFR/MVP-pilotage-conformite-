@@ -59,6 +59,7 @@ export default async function ContractsPage({
       <ListView
         rows={rows}
         getKey={(c) => c.id}
+        href={(c) => `/dashboard/contracts/${c.id}`}
         empty="Aucun contrat."
         columns={[
           { header: "Titre", cell: (c) => <span className="font-medium">{c.title}</span> },

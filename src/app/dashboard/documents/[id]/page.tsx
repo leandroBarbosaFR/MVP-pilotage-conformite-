@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireContext } from "@/lib/queries/auth";
-import { getDocument } from "@/lib/queries/entities";
+import { getDocument, getDocumentLinkMap, getProfiles } from "@/lib/queries/entities";
 import { PageHeader } from "@/components/app/page-header";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { DetailGrid, DetailField } from "@/components/app/detail-field";
@@ -17,10 +17,22 @@ export default async function DocumentDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  await requireContext();
+  const { company } = await requireContext();
 
   const document = await getDocument(id);
   if (!document) notFound();
+
+  const [links, profiles] = await Promise.all([
+    getDocumentLinkMap(company.id, [document]),
+    getProfiles(company.id),
+  ]);
+  const link = links.get(document.id);
+  const responsible = document.responsible_id
+    ? profiles.find((p) => p.id === document.responsible_id)
+    : null;
+  const responsibleName = responsible
+    ? [responsible.first_name, responsible.last_name].filter(Boolean).join(" ") || responsible.email
+    : null;
 
   return (
     <div className="space-y-6">
@@ -55,7 +67,9 @@ export default async function DocumentDetailPage({
             </span>
           }
         />
-        <DetailField label="Statut" value={document.status} />
+        <DetailField label="Module" value={link && link.module !== "—" ? link.module : null} />
+        <DetailField label="Entité liée" value={link && link.label !== "—" ? link.label : null} />
+        <DetailField label="Responsable" value={responsibleName} />
         <DetailField label="Ajouté le" value={formatDate(document.created_at)} />
       </DetailGrid>
 

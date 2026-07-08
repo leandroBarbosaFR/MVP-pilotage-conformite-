@@ -68,11 +68,17 @@ export async function generateNotificationsForDueItems() {
     adminIds = (data ?? []).map((r) => r.id as string);
   }
 
-  const [obligations, actions, documents, epis] = await Promise.all([
+  const [obligations, actions, documents, epis, certifications, absences, contracts, vehicles, equipments, incidents] = await Promise.all([
     supabase.from("obligations").select("id, title, due_date, responsible_id, supervisor_id").eq("company_id", cid).eq("is_archived", false),
     supabase.from("actions").select("id, title, due_date, status, assigned_to, supervisor_id").eq("company_id", cid).eq("is_archived", false),
     supabase.from("documents").select("id, title, expiration_date, responsible_id, supervisor_id").eq("company_id", cid).eq("is_archived", false),
     supabase.from("epi").select("id, epi_type, internal_reference, renewal_date, responsible_id, supervisor_id").eq("company_id", cid).eq("is_archived", false),
+    supabase.from("employee_certifications").select("id, title, category, expiry_date, responsible_id, supervisor_id").eq("company_id", cid).eq("is_archived", false),
+    supabase.from("employee_absences").select("id, next_medical_visit, return_visit_required, responsible_id").eq("company_id", cid).eq("is_archived", false),
+    supabase.from("contracts").select("id, title, renewal_date, end_date, responsible_id, supervisor_id").eq("company_id", cid).eq("is_archived", false),
+    supabase.from("vehicles").select("id, registration_number, technical_inspection_expiry, insurance_expiry, tachograph_expiry, extinguisher_expiry, next_maintenance, fleet_manager_id, responsible_id, supervisor_id").eq("company_id", cid).eq("is_archived", false),
+    supabase.from("equipments").select("id, name, next_check_date, responsible_id, supervisor_id").eq("company_id", cid).eq("is_archived", false),
+    supabase.from("incidents").select("id, title, status, severity, responsible_id, supervisor_id").eq("company_id", cid).eq("is_archived", false),
   ]);
 
   // Notifications déjà présentes : clé élément|type|destinataire (évite les doublons)
@@ -176,6 +182,101 @@ export async function generateNotificationsForDueItems() {
       "ACTION_LATE", "HIGH",
       "Action en retard",
       `L'action « ${a.title} » est en retard (échéance ${fmt(a.due_date as string | null)}).`
+    );
+  }
+
+  // Certifications / habilitations / visites médicales / permis
+  for (const c of certifications.data ?? []) {
+    const d = daysUntil(c.expiry_date as string | null);
+    if (d === null || d > threshold) continue;
+    const expired = d < 0;
+    const cat = c.category ? ` (${c.category})` : "";
+    push(
+      "certification", c.id as string, c.responsible_id as string | null, c.supervisor_id as string | null,
+      expired ? "EXPIRED" : "DUE_SOON",
+      expired ? "CRITICAL" : d < 7 ? "HIGH" : "MEDIUM",
+      expired ? "Habilitation expirée" : "Habilitation à renouveler",
+      `La certification « ${c.title} »${cat} ${expired ? "est expirée depuis le" : "expire le"} ${fmt(c.expiry_date as string | null)}.`
+    );
+  }
+
+  // Visites médicales de reprise à planifier
+  for (const ab of absences.data ?? []) {
+    const d = daysUntil(ab.next_medical_visit as string | null);
+    if (d === null || d > threshold) continue;
+    push(
+      "absence", ab.id as string, ab.responsible_id as string | null, null,
+      d < 0 ? "EXPIRED" : "DUE_SOON",
+      d < 0 ? "HIGH" : "MEDIUM",
+      "Visite médicale à planifier",
+      `Une visite médicale ${ab.return_visit_required ? "de reprise " : ""}est à planifier pour le ${fmt(ab.next_medical_visit as string | null)}.`
+    );
+  }
+
+  // Contrats à renouveler
+  for (const c of contracts.data ?? []) {
+    const ref = (c.renewal_date as string | null) ?? (c.end_date as string | null);
+    const d = daysUntil(ref);
+    if (d === null || d > threshold) continue;
+    const expired = d < 0;
+    push(
+      "contract", c.id as string, c.responsible_id as string | null, c.supervisor_id as string | null,
+      expired ? "EXPIRED" : "DUE_SOON",
+      expired ? "CRITICAL" : d < 7 ? "HIGH" : "MEDIUM",
+      expired ? "Contrat expiré" : "Contrat à renouveler",
+      `Le contrat « ${c.title} » ${expired ? "est arrivé à échéance le" : "est à renouveler avant le"} ${fmt(ref)}.`
+    );
+  }
+
+  // Véhicules : échéance la plus urgente parmi CT / assurance / tachy / extincteur / entretien
+  for (const v of vehicles.data ?? []) {
+    const fields: { label: string; date: string | null }[] = [
+      { label: "contrôle technique", date: v.technical_inspection_expiry as string | null },
+      { label: "assurance", date: v.insurance_expiry as string | null },
+      { label: "tachygraphe", date: v.tachograph_expiry as string | null },
+      { label: "extincteur", date: v.extinguisher_expiry as string | null },
+      { label: "entretien", date: v.next_maintenance as string | null },
+    ];
+    let urgent: { label: string; date: string | null; d: number } | null = null;
+    for (const f of fields) {
+      const d = daysUntil(f.date);
+      if (d === null || d > threshold) continue;
+      if (!urgent || d < urgent.d) urgent = { label: f.label, date: f.date, d };
+    }
+    if (!urgent) continue;
+    const expired = urgent.d < 0;
+    push(
+      "vehicle", v.id as string, (v.fleet_manager_id as string | null) ?? (v.responsible_id as string | null), v.supervisor_id as string | null,
+      expired ? "EXPIRED" : "DUE_SOON",
+      expired ? "CRITICAL" : urgent.d < 7 ? "HIGH" : "MEDIUM",
+      expired ? "Véhicule : échéance dépassée" : "Véhicule à contrôler",
+      `Le véhicule ${v.registration_number} : ${urgent.label} ${expired ? "dépassé depuis le" : "à échéance le"} ${fmt(urgent.date)}.`
+    );
+  }
+
+  // Équipements : contrôle périodique à prévoir
+  for (const e of equipments.data ?? []) {
+    const d = daysUntil(e.next_check_date as string | null);
+    if (d === null || d > threshold) continue;
+    const expired = d < 0;
+    push(
+      "equipment", e.id as string, e.responsible_id as string | null, e.supervisor_id as string | null,
+      expired ? "EXPIRED" : "CONTROL_TO_PLAN",
+      expired ? "CRITICAL" : d < 7 ? "HIGH" : "MEDIUM",
+      expired ? "Équipement : contrôle dépassé" : "Équipement à vérifier",
+      `Le contrôle de l'équipement « ${e.name} » ${expired ? "est dépassé depuis le" : "est à prévoir avant le"} ${fmt(e.next_check_date as string | null)}.`
+    );
+  }
+
+  // Incidents non clôturés
+  for (const i of incidents.data ?? []) {
+    if (i.status === "CLOSED" || i.status === "ARCHIVED") continue;
+    push(
+      "incident", i.id as string, i.responsible_id as string | null, i.supervisor_id as string | null,
+      "SUPERVISOR_ALERT",
+      i.severity === "CRITICAL" ? "CRITICAL" : i.severity === "HIGH" ? "HIGH" : "MEDIUM",
+      "Incident non clôturé",
+      `L'incident « ${i.title} » n'est pas encore clôturé.`
     );
   }
 

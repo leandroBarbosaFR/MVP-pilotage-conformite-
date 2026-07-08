@@ -65,6 +65,7 @@ export default async function SitesPage({
         columns={[
           { header: "Nom", cell: (s) => <span className="font-medium">{s.name}</span> },
           { header: "Ville", cell: (s) => s.city ?? "—" },
+          { header: "Type", cell: (s) => s.site_type ?? "—" },
           { header: "Conformité", cell: (s) => compBadge(s.id) },
           { header: "Prochaine échéance", cell: (s) => formatDate(comp.get(s.id)?.nextDue ?? null) },
           { header: "Docs manquants", align: "right", cell: (s) => comp.get(s.id)?.missingDocs ?? 0 },
