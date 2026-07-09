@@ -27,6 +27,8 @@ export default async function ActionDetailPage({
   return (
     <div className="space-y-6">
       <PageHeader
+        backHref="/dashboard/actions"
+        backLabel="Retour aux actions"
         title={action.title}
         action={<ArchiveButton table="actions" id={action.id} archived={action.is_archived} />}
       />

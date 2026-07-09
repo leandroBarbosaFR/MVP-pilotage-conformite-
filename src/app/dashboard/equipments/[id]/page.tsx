@@ -67,6 +67,8 @@ export default async function EquipmentDetailPage({ params }: { params: Promise<
   return (
     <div className="space-y-6">
       <PageHeader
+        backHref="/dashboard/equipments"
+        backLabel="Retour aux équipements"
         title={equipment.name}
         description={[equipment.category ?? equipment.equipment_type, siteName !== "—" ? siteName : null].filter(Boolean).join(" · ") || undefined}
         action={<ArchiveButton table="equipments" id={equipment.id} archived={equipment.is_archived} />}

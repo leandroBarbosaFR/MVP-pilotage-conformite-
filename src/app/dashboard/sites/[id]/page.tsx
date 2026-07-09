@@ -60,6 +60,8 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
   return (
     <div className="space-y-6">
       <PageHeader
+        backHref="/dashboard/sites"
+        backLabel="Retour aux sites"
         title={site.name}
         description={[site.site_type, site.city].filter(Boolean).join(" · ") || undefined}
         action={<ArchiveButton table="sites" id={site.id} archived={site.is_archived} />}

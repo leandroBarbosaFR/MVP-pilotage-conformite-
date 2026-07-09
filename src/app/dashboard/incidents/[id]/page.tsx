@@ -39,6 +39,8 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
   return (
     <div className="space-y-6">
       <PageHeader
+        backHref="/dashboard/incidents"
+        backLabel="Retour aux incidents"
         title={incident.title}
         description={INCIDENT_TYPE_LABELS[incident.type] ?? incident.type}
         action={

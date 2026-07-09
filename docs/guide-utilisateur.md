@@ -322,7 +322,9 @@ Actions sur un document : **Ouvrir / Télécharger**, **Archiver**.
 
 **À quoi ça sert :** être prévenu automatiquement des échéances et des retards, sans avoir à surveiller chaque module.
 
-**Accès :** menu **Alertes**.
+**Accès :** menu **Alertes**. La page comporte deux parties :
+- **Alertes en cours** : la liste complète, calculée en temps réel à partir de vos données (échéances dépassées ou à venir, actions en retard, documents expirés). C'est la version étendue du bloc « Alertes prioritaires » du tableau de bord — chaque ligne est cliquable vers l'élément concerné.
+- **Notifications envoyées** : les rappels internes générés pour les responsables et superviseurs (voir ci-dessous).
 
 ### Générer les alertes
 Le bouton **Mettre à jour les alertes** parcourt tous vos éléments et crée les notifications nécessaires. Une alerte est générée quand :
@@ -366,7 +368,11 @@ L'**historique des imports** en bas de page conserve chaque import (fichier, typ
 
 **À quoi ça sert :** exporter une synthèse pour la direction, un audit ou un client.
 
-**Accès :** menu **Rapports**. Vous y retrouvez une vue d'ensemble exportable de la conformité.
+**Accès :** menu **Rapports**. La page présente le **taux de conformité**, les indicateurs clés, les **échéances à venir**, les **actions en retard** et les **documents expirés**.
+
+Deux exports en haut à droite :
+- **Exporter Excel** : télécharge un fichier `.xlsx` avec un onglet par section (Synthèse, Échéances à venir, Actions en retard, Documents expirés).
+- **Exporter PDF** : ouvre la fenêtre d'impression du navigateur ; choisissez **« Enregistrer au format PDF »**. Le menu et les boutons sont automatiquement masqués dans le document.
 
 ---
 

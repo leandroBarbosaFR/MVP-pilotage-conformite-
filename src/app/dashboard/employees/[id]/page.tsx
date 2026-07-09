@@ -73,6 +73,8 @@ export default async function EmployeeDetailPage({
   return (
     <div className="space-y-6">
       <PageHeader
+        backHref="/dashboard/employees"
+        backLabel="Retour au personnel"
         title={fullName || "Collaborateur"}
         description={[employee.job_family ?? employee.job_title, siteName !== "—" ? siteName : null].filter(Boolean).join(" · ") || undefined}
         action={<ArchiveButton table="employees" id={employee.id} archived={employee.is_archived} />}

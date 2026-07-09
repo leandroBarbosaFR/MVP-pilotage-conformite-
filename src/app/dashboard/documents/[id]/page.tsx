@@ -37,6 +37,8 @@ export default async function DocumentDetailPage({
   return (
     <div className="space-y-6">
       <PageHeader
+        backHref="/dashboard/documents"
+        backLabel="Retour aux documents"
         title={document.title}
         action={
           <>

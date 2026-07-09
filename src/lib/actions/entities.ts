@@ -54,8 +54,9 @@ export async function toggleArchive(table: string, id: string, archive = true) {
       archived_by: archive ? profile.id : null,
     })
     .eq("id", id);
-  revalidatePath(`/dashboard/${table}`);
-  revalidatePath("/dashboard");
+  // Revalide tout le sous-arbre /dashboard : listes ET pages détail, quelle
+  // que soit la table (gère aussi les routes à tiret, ex. non-conformities).
+  revalidatePath("/dashboard", "layout");
 }
 
 export async function createObligation(formData: FormData) {

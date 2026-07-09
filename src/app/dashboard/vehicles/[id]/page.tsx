@@ -70,6 +70,8 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
   return (
     <div className="space-y-6">
       <PageHeader
+        backHref="/dashboard/vehicles"
+        backLabel="Retour aux véhicules"
         title={vehicle.registration_number}
         description={[vehicle.brand, vehicle.model].filter(Boolean).join(" ") || undefined}
         action={<ArchiveButton table="vehicles" id={vehicle.id} archived={vehicle.is_archived} />}

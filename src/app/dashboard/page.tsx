@@ -125,10 +125,13 @@ export default async function DashboardPage() {
             <Calendar size={16} className="text-muted-foreground" />
             {today}
           </span>
-          <button className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">
+          <Link
+            href="/dashboard/rapports"
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
             <Download size={16} />
             Exporter le rapport
-          </button>
+          </Link>
         </div>
       </div>
 

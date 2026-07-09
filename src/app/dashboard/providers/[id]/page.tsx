@@ -35,6 +35,8 @@ export default async function ProviderDetailPage({ params }: { params: Promise<{
   return (
     <div className="space-y-6">
       <PageHeader
+        backHref="/dashboard/providers"
+        backLabel="Retour aux prestataires"
         title={provider.name}
         description={[provider.provider_type, siteName].filter(Boolean).join(" · ") || undefined}
         action={<ArchiveButton table="providers" id={provider.id} archived={provider.is_archived} />}

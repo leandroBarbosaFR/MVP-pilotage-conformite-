@@ -42,6 +42,8 @@ export default async function ObligationDetailPage({
   return (
     <div className="space-y-6">
       <PageHeader
+        backHref="/dashboard/obligations"
+        backLabel="Retour aux contrôles réglementaires"
         title={obligation.title}
         action={
           <ArchiveButton table="obligations" id={obligation.id} archived={obligation.is_archived} />

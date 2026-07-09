@@ -8,7 +8,7 @@ import {
 import type { Obligation, ActionRow, DocumentRow } from "@/lib/types/database";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ListView } from "@/components/app/list-view";
-import { ExportButtons } from "@/components/reports/export-buttons";
+import { ExportButtons, type ReportData } from "@/components/reports/export-buttons";
 import { formatDate } from "@/lib/utils";
 
 export default async function RapportsPage() {
@@ -24,6 +24,20 @@ export default async function RapportsPage() {
   const total = stats.obligations_total;
   const conformRate = total > 0 ? Math.round((stats.obligations_ok / total) * 100) : 0;
 
+  const reportData: ReportData = {
+    summary: [
+      { label: "Taux conforme", value: `${conformRate}%` },
+      { label: "Total obligations", value: total },
+      { label: "À surveiller", value: stats.obligations_soon },
+      { label: "Critique (expirées)", value: stats.obligations_expired },
+      { label: "Actions en retard", value: dashboard.overdue_actions },
+      { label: "Documents expirés", value: dashboard.expired_documents },
+    ],
+    upcoming: upcoming.map((o) => ({ title: o.title, due: formatDate(o.due_date) })),
+    overdue: overdue.map((a) => ({ title: a.title, due: formatDate(a.due_date) })),
+    expired: expired.map((d) => ({ title: d.title, expiration: formatDate(d.expiration_date) })),
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -33,7 +47,7 @@ export default async function RapportsPage() {
             Synthèse de conformité — exports pour la direction et les audits.
           </p>
         </div>
-        <ExportButtons />
+        <ExportButtons data={reportData} />
       </div>
 
       {/* Section 1 — Rapport global */}

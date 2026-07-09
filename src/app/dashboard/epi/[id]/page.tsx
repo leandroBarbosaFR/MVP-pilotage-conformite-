@@ -45,6 +45,8 @@ export default async function EpiDetailPage({
   return (
     <div className="space-y-6">
       <PageHeader
+        backHref="/dashboard/epi"
+        backLabel="Retour aux EPI"
         title={title || "EPI"}
         action={<ArchiveButton table="epi" id={epi.id} archived={epi.is_archived} />}
       />

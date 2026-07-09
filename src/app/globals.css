@@ -74,3 +74,14 @@ body {
 [class*="shadow"] {
   box-shadow: none !important;
 }
+
+/* Impression / export PDF : masque le menu et les commandes, garde le contenu */
+@media print {
+  aside,
+  .no-print {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+}

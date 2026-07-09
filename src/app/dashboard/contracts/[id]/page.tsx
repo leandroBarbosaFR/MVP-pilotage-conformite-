@@ -29,6 +29,8 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
   return (
     <div className="space-y-6">
       <PageHeader
+        backHref="/dashboard/contracts"
+        backLabel="Retour aux contrats"
         title={contract.title}
         description={contract.contract_type ?? undefined}
         action={<ArchiveButton table="contracts" id={contract.id} archived={contract.is_archived} />}
