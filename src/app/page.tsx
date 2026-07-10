@@ -244,9 +244,9 @@ function DashboardPreview() {
       {/* Stat tiles */}
       <div className="mt-4 grid grid-cols-3 gap-2">
         {[
-          { l: "Conforme", v: "72 %", tone: "text-status-ok", bg: "bg-status-ok/10" },
+          { l: "Suivi à jour", v: "72 %", tone: "text-status-ok", bg: "bg-status-ok/10" },
           { l: "À surveiller", v: "5", tone: "text-status-warn", bg: "bg-status-warn/10" },
-          { l: "Critique", v: "2", tone: "text-status-danger", bg: "bg-status-danger/10" },
+          { l: "Critiques", v: "2", tone: "text-status-danger", bg: "bg-status-danger/10" },
         ].map((s) => (
           <div key={s.l} className={`rounded-md ${s.bg} p-2.5`}>
             <div className="text-[11px] text-muted-foreground">{s.l}</div>

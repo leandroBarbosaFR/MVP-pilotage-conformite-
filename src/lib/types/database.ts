@@ -337,6 +337,8 @@ export interface Provider extends ArchivableRow {
   insurance_expiry: string | null;
   priority: PriorityLevel | null;
   needs_followup: boolean;
+  last_reminded_at: string | null;
+  reminder_count: number;
 }
 
 export interface Contract extends ArchivableRow {

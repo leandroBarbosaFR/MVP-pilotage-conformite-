@@ -6,6 +6,7 @@ import { AddPanel } from "@/components/app/add-panel";
 import { ListToolbar } from "@/components/app/list-toolbar";
 import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
+import { ReminderButton } from "@/components/app/reminder-button";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { ListView } from "@/components/app/list-view";
@@ -100,7 +101,12 @@ export default async function ProvidersPage({
             { label: "Assurance", value: formatDate(p.insurance_expiry) },
           ],
         })}
-        actions={(p) => <ArchiveButton table="providers" id={p.id} archived={p.is_archived} />}
+        actions={(p) => (
+          <>
+            <ReminderButton label={p.name} providerId={p.id} responsibleId={p.responsible_id} />
+            <ArchiveButton table="providers" id={p.id} archived={p.is_archived} />
+          </>
+        )}
       />
 
       <Pagination

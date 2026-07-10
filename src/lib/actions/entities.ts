@@ -542,6 +542,56 @@ export async function createIncidentCorrectiveAction(incidentId: string) {
   revalidatePath("/dashboard");
 }
 
+/**
+ * Relance rapide : crée une action de relance (module Actions, catégorie « Relance »)
+ * rattachée à l'élément, et horodate la relance côté prestataire le cas échéant.
+ * L'envoi d'e-mail n'est pas encore branché — la structure est prête.
+ */
+export async function createReminder(input: {
+  label: string;
+  relatedType?: string | null;
+  relatedId?: string | null;
+  providerId?: string | null;
+  responsibleId?: string | null;
+  channel?: string | null;
+}) {
+  const { company, profile } = await requireContext();
+  const supabase = await createClient();
+
+  await supabase.from("actions").insert({
+    company_id: company.id,
+    title: `Relancer : ${input.label}`,
+    category: "Relance",
+    description: input.channel ? `Relance à effectuer (${input.channel}).` : "Relance à effectuer.",
+    related_entity_type: input.relatedType ?? (input.providerId ? "PROVIDER" : null),
+    related_entity_id: input.relatedId ?? input.providerId ?? null,
+    source: "Relance",
+    status: "TODO",
+    priority: "HIGH",
+    assigned_to: input.responsibleId ?? null,
+    created_by: profile.id,
+  });
+
+  if (input.providerId) {
+    const { data: prov } = await supabase
+      .from("providers")
+      .select("reminder_count")
+      .eq("id", input.providerId)
+      .single();
+    const count = (prov?.reminder_count as number | null) ?? 0;
+    await supabase
+      .from("providers")
+      .update({
+        needs_followup: true,
+        last_reminded_at: new Date().toISOString(),
+        reminder_count: count + 1,
+      })
+      .eq("id", input.providerId);
+  }
+
+  revalidatePath("/dashboard", "layout");
+}
+
 export async function markNotification(id: string, isRead: boolean) {
   await requireContext();
   const supabase = await createClient();

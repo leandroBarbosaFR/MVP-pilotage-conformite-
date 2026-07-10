@@ -53,7 +53,7 @@ export const STATUS_LABELS: Record<ComplianceStatus, string> = {
 };
 
 export const OBLIGATION_STATUS_LABELS: Record<ObligationStatus, string> = {
-  COMPLIANT: "Conforme",
+  COMPLIANT: "À jour",
   TO_WATCH: "À surveiller",
   EXPIRING_SOON: "Bientôt expiré",
   EXPIRED: "Expiré",

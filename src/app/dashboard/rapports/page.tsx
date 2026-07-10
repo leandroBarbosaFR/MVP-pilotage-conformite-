@@ -4,11 +4,15 @@ import {
   getUpcomingObligations,
   getOverdueActions,
   getExpiredDocuments,
+  getModulePriorities,
+  getOpenIncidents,
 } from "@/lib/queries/dashboard";
-import type { Obligation, ActionRow, DocumentRow } from "@/lib/types/database";
+import type { ComplianceStatus, Obligation, ActionRow, DocumentRow } from "@/lib/types/database";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ListView } from "@/components/app/list-view";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { ExportButtons, type ReportData } from "@/components/reports/export-buttons";
+import { INCIDENT_STATUS_LABELS, type IncidentStatus } from "@/types/enums";
 import { formatDate } from "@/lib/utils";
 
 export default async function RapportsPage() {
@@ -24,18 +28,32 @@ export default async function RapportsPage() {
   const total = stats.obligations_total;
   const conformRate = total > 0 ? Math.round((stats.obligations_ok / total) * 100) : 0;
 
+  const [priorities, openIncidents] = await Promise.all([
+    getModulePriorities(company.id, { missingDocs: stats.missing_documents, overdueActions: dashboard.overdue_actions }),
+    getOpenIncidents(company.id),
+  ]);
+
+  const priorityRow = (p: (typeof priorities)[number]) => {
+    const tone: ComplianceStatus = p.overdue > 0 ? "danger" : p.count > 0 ? "warn" : "ok";
+    const label = tone === "danger" ? "Éléments critiques" : tone === "warn" ? "À surveiller" : "À jour";
+    return { tone, label };
+  };
+
   const reportData: ReportData = {
     summary: [
-      { label: "Taux conforme", value: `${conformRate}%` },
+      { label: "Taux de suivi à jour", value: `${conformRate}%` },
       { label: "Total obligations", value: total },
       { label: "À surveiller", value: stats.obligations_soon },
-      { label: "Critique (expirées)", value: stats.obligations_expired },
+      { label: "Éléments critiques", value: stats.obligations_expired },
       { label: "Actions en retard", value: dashboard.overdue_actions },
       { label: "Documents expirés", value: dashboard.expired_documents },
+      { label: "Incidents non clôturés", value: openIncidents.length },
     ],
+    priorities: priorities.map((p) => ({ label: p.label, count: p.count, status: priorityRow(p).label })),
     upcoming: upcoming.map((o) => ({ title: o.title, due: formatDate(o.due_date) })),
     overdue: overdue.map((a) => ({ title: a.title, due: formatDate(a.due_date) })),
     expired: expired.map((d) => ({ title: d.title, expiration: formatDate(d.expiration_date) })),
+    incidents: openIncidents.map((n) => ({ title: n.title, date: formatDate(n.occurred_at), status: INCIDENT_STATUS_LABELS[n.status as IncidentStatus] ?? n.status })),
   };
 
   return (
@@ -53,21 +71,44 @@ export default async function RapportsPage() {
       {/* Section 1 — Rapport global */}
       <Card>
         <CardHeader>
-          <CardTitle>Rapport global de conformité</CardTitle>
+          <CardTitle>Rapport global de suivi</CardTitle>
         </CardHeader>
         <CardContent>
           {total === 0 ? (
             <p className="text-sm text-muted-foreground">Aucune donnée</p>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-              <Kpi label="Taux conforme" value={`${conformRate}%`} tone="ok" />
+              <Kpi label="Suivi à jour" value={`${conformRate}%`} tone="ok" />
               <Kpi label="Total obligations" value={total} />
               <Kpi label="À surveiller" value={stats.obligations_soon} tone="warn" />
-              <Kpi label="Critique" value={stats.obligations_expired} tone="danger" />
+              <Kpi label="Éléments critiques" value={stats.obligations_expired} tone="danger" />
               <Kpi label="Actions en retard" value={dashboard.overdue_actions} tone="danger" />
               <Kpi label="Documents expirés" value={dashboard.expired_documents} tone="danger" />
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Section 1bis — Priorités par module */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Priorités par module</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+          {priorities.map((p) => {
+            const r = priorityRow(p);
+            return (
+              <div key={p.label} className="flex items-center justify-between gap-3 bg-surface px-4 py-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-semibold tabular-nums text-foreground">{p.count}</span>
+                    <span className="truncate text-sm text-foreground">{p.label}</span>
+                  </div>
+                  <StatusBadge status={r.tone} label={r.label} className="mt-1" />
+                </div>
+              </div>
+            );
+          })}
         </CardContent>
       </Card>
 
@@ -132,6 +173,29 @@ export default async function RapportsPage() {
             card={(d) => ({
               title: d.title,
               fields: [{ label: "Expiration", value: formatDate(d.expiration_date) }],
+            })}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Section 5 — Incidents non clôturés */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Incidents non clôturés</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ListView
+            rows={openIncidents}
+            getKey={(n) => n.id}
+            empty="Aucun incident ouvert."
+            columns={[
+              { header: "Titre", cell: (n) => <span className="font-medium">{n.title}</span> },
+              { header: "Date", cell: (n) => formatDate(n.occurred_at) },
+              { header: "Statut", cell: (n) => INCIDENT_STATUS_LABELS[n.status as IncidentStatus] ?? n.status },
+            ]}
+            card={(n) => ({
+              title: n.title,
+              fields: [{ label: "Date", value: formatDate(n.occurred_at) }],
             })}
           />
         </CardContent>

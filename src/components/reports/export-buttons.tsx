@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 
 export interface ReportData {
   summary: { label: string; value: string | number }[];
+  priorities: { label: string; count: number; status: string }[];
   upcoming: { title: string; due: string }[];
   overdue: { title: string; due: string }[];
   expired: { title: string; expiration: string }[];
+  incidents: { title: string; date: string; status: string }[];
 }
 
 export function ExportButtons({ data }: { data: ReportData }) {
@@ -19,6 +21,11 @@ export function ExportButtons({ data }: { data: ReportData }) {
       wb,
       XLSX.utils.json_to_sheet(data.summary.map((s) => ({ Indicateur: s.label, Valeur: s.value }))),
       "Synthèse"
+    );
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.aoa_to_sheet([["Module", "À traiter", "Statut"], ...data.priorities.map((p) => [p.label, p.count, p.status])]),
+      "Priorités par module"
     );
     XLSX.utils.book_append_sheet(
       wb,
@@ -34,6 +41,11 @@ export function ExportButtons({ data }: { data: ReportData }) {
       wb,
       XLSX.utils.aoa_to_sheet([["Titre", "Expiration"], ...data.expired.map((d) => [d.title, d.expiration])]),
       "Documents expirés"
+    );
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.aoa_to_sheet([["Titre", "Date", "Statut"], ...data.incidents.map((n) => [n.title, n.date, n.status])]),
+      "Incidents non clôturés"
     );
 
     const stamp = new Date().toISOString().slice(0, 10);

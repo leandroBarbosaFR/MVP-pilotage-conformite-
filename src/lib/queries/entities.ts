@@ -770,6 +770,29 @@ export async function getDocuments(companyId: string, filters: ListFilters = {})
   return { rows: (data as DocumentRow[]) ?? [], count: count ?? 0 };
 }
 
+/** Obligations actives dont le document attendu est absent (vue « Documents manquants »). */
+export async function getMissingDocumentObligations(
+  companyId: string,
+  filters: ListFilters = {}
+): Promise<{ rows: Obligation[]; count: number }> {
+  const supabase = await createClient();
+  const [oblRes, docRes] = await Promise.all([
+    supabase.from("obligations").select("*").eq("company_id", companyId).eq("is_archived", false).order("due_date", { ascending: true, nullsFirst: false }),
+    supabase.from("documents").select("obligation_id").eq("company_id", companyId).eq("is_archived", false).not("obligation_id", "is", null),
+  ]);
+  const withDoc = new Set((docRes.data ?? []).map((d) => d.obligation_id));
+  let rows = ((oblRes.data as Obligation[]) ?? []).filter((o) => !withDoc.has(o.id));
+  if (filters.search) {
+    const q = filters.search.toLowerCase();
+    rows = rows.filter((o) => (o.expected_document ?? o.title).toLowerCase().includes(q) || o.title.toLowerCase().includes(q));
+  }
+  const count = rows.length;
+  const page = filters.page ?? 1;
+  const size = filters.pageSize ?? 20;
+  rows = rows.slice((page - 1) * size, (page - 1) * size + size);
+  return { rows, count };
+}
+
 export async function getImportHistory(companyId: string): Promise<ImportRow[]> {
   const supabase = await createClient();
   const { data } = await supabase

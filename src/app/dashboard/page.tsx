@@ -17,6 +17,7 @@ import {
   getExpiredObligations,
   getExpiredDocuments,
   getPendingActions,
+  getModulePriorities,
 } from "@/lib/queries/dashboard";
 import { StatCard } from "@/components/app/stat-card";
 import { UpdateAlertsButton } from "@/components/app/update-alerts-button";
@@ -66,6 +67,10 @@ export default async function DashboardPage() {
   const watchElements = oblSoon;
 
   const hasData = total > 0 || modules.some((m) => m.total > 0);
+  const priorities = await getModulePriorities(company.id, {
+    missingDocs: s.missing_documents,
+    overdueActions: stats.overdue_actions,
+  });
   const canGenerate = canManageUsers(profile.role) || profile.role === "QHSE_MANAGER";
 
   // Alertes prioritaires : mêmes catégories que le compteur « Critique »
@@ -117,7 +122,7 @@ export default async function DashboardPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Tableau de bord</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Vue globale de votre conformité</p>
+          <p className="mt-1 text-sm text-muted-foreground">Vue globale de votre suivi</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {canGenerate ? <UpdateAlertsButton /> : null}
@@ -137,9 +142,9 @@ export default async function DashboardPage() {
 
       {/* Statistiques */}
       <div data-tour="stats" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <StatCard label="Conforme" value={hasData ? `${score} %` : "—"} tone="ok" icon={CheckCircle2} />
+        <StatCard label="Suivi à jour" value={hasData ? `${score} %` : "—"} tone="ok" icon={CheckCircle2} />
         <StatCard label="À surveiller" value={watchElements} tone="warn" icon={AlertTriangle} hint="Éléments" />
-        <StatCard label="Critique" value={criticalElements} tone="danger" icon={AlertOctagon} hint="Éléments" />
+        <StatCard label="Éléments critiques" value={criticalElements} tone="danger" icon={AlertOctagon} hint="Éléments" />
         <StatCard label="Total obligations" value={total} tone="none" icon={ClipboardList} hint="Tous types" />
         <StatCard label="Actions en retard" value={stats.overdue_actions} tone="danger" icon={Clock} />
         <StatCard label="Documents manquants" value={s.missing_documents} tone="warn" icon={FileWarning} />
@@ -158,6 +163,33 @@ export default async function DashboardPage() {
         </Card>
       ) : (
       <>
+      {/* Priorités par module — centre de décision */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Priorités par module</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+          {priorities.map((p) => {
+            const tone: ComplianceStatus = p.overdue > 0 ? "danger" : p.count > 0 ? "warn" : "ok";
+            const label = tone === "danger" ? "Éléments critiques" : tone === "warn" ? "À surveiller" : "À jour";
+            return (
+              <div key={p.key} className="flex items-center justify-between gap-3 bg-surface px-4 py-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-semibold tabular-nums text-foreground">{p.count}</span>
+                    <span className="truncate text-sm text-foreground">{p.label}</span>
+                  </div>
+                  <StatusBadge status={tone} label={label} className="mt-1" />
+                </div>
+                <Link href={p.href} className="shrink-0 text-xs font-medium text-accent hover:underline">
+                  Voir
+                </Link>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
       {/* Alertes + Score */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card data-tour="alerts" className="lg:col-span-2">
@@ -197,14 +229,14 @@ export default async function DashboardPage() {
 
         <Card data-tour="score">
           <CardHeader>
-            <CardTitle>Score de conformité</CardTitle>
+            <CardTitle>État du suivi</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-5 py-6">
             <ScoreDonut score={score} ok={okCount} warn={oblSoon} danger={oblExpired} />
             <div className="grid w-full grid-cols-3 gap-2 text-center">
-              <Legend label="Conforme" tone="ok" count={okCount} total={total} />
+              <Legend label="À jour" tone="ok" count={okCount} total={total} />
               <Legend label="À surveiller" tone="warn" count={oblSoon} total={total} />
-              <Legend label="Critique" tone="danger" count={oblExpired} total={total} />
+              <Legend label="Critiques" tone="danger" count={oblExpired} total={total} />
             </div>
           </CardContent>
         </Card>
@@ -286,7 +318,7 @@ function ModuleBreakdown({ modules }: { modules: ModuleStat[] }) {
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="px-4 py-3 font-medium">Module</th>
                 <th className="px-4 py-3 text-right font-medium">Total</th>
-                <th className="px-4 py-3 text-right font-medium">Conforme</th>
+                <th className="px-4 py-3 text-right font-medium">À jour</th>
                 <th className="px-4 py-3 text-right font-medium">À surveiller</th>
                 <th className="px-4 py-3 text-right font-medium">Critique</th>
                 <th className="px-4 py-3 text-right font-medium">Docs manquants</th>

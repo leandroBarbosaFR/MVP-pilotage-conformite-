@@ -379,6 +379,7 @@ export const providers: Row[] = [
   id: p.id, name: p.name, provider_type: p.provider_type, contact_name: p.contact_name, email: p.email, phone: p.phone, city: p.city,
   company_id: C, address: null, country: "France", notes: null, is_active: true,
   site_id: p.site_id, responsible_id: "p-qhse", insurance_expiry: iso(p.insurance), priority: p.insurance < 0 ? "CRITICAL" : "MEDIUM", needs_followup: p.followup,
+  last_reminded_at: null, reminder_count: 0,
   ...archivable,
 }));
 
@@ -434,6 +435,93 @@ export const non_conformities: Row[] = NC_SEED.map((n) => ({
   responsible_id: "p-qhse", supervisor_id: "p-admin", status: n.status,
   corrective_action_id: n.corrective ?? null, document_id: null, ...archivable,
 }));
+
+// --- Enrichissement fiche Entrepôt Marseille (site-1) ------------------
+// Prestataires supplémentaires rattachés au site.
+providers.push(
+  { id: "prov-7", name: "NetPro Propreté", provider_type: "Nettoyage", contact_name: "Mme Diallo", email: "contact@netpro.fr", phone: "04 91 00 00 07", city: "Marseille", company_id: C, address: null, country: "France", notes: null, is_active: true, site_id: "site-1", responsible_id: "p-expl", insurance_expiry: iso(160), priority: "MEDIUM", needs_followup: false, last_reminded_at: null, reminder_count: 0, ...archivable },
+  { id: "prov-8", name: "VigiTel Télésurveillance", provider_type: "Télésurveillance", contact_name: "M. Costa", email: "contact@vigitel.fr", phone: "04 91 00 00 08", city: "Marseille", company_id: C, address: null, country: "France", notes: null, is_active: true, site_id: "site-1", responsible_id: "p-expl", insurance_expiry: iso(70), priority: "MEDIUM", needs_followup: true, last_reminded_at: null, reminder_count: 0, ...archivable },
+);
+
+// Obligations de sécurité du site (module SITES). Certaines sans document -> "Documents manquants".
+const SITE1_OBL: { t: string; due: number; prio: string; prov: string | null; doc: string; hasDoc: boolean }[] = [
+  { t: "Contrôle installation électrique", due: -8,  prio: "CRITICAL", prov: "prov-2", doc: "Rapport électrique 2026",        hasDoc: true },
+  { t: "Vérification alarme incendie",     due: 18,  prio: "HIGH",     prov: "prov-1", doc: "Rapport contrôle alarme",         hasDoc: true },
+  { t: "Registre de sécurité",             due: 120, prio: "LOW",      prov: null,     doc: "Registre de sécurité",           hasDoc: true },
+  { t: "Plan d'évacuation",                due: 300, prio: "LOW",      prov: null,     doc: "Plan d'évacuation",              hasDoc: true },
+  { t: "Contrôle des racks de stockage",   due: 45,  prio: "MEDIUM",   prov: null,     doc: "Rapport contrôle racks",          hasDoc: false },
+  { t: "Contrôle portes sectionnelles",    due: 20,  prio: "HIGH",     prov: null,     doc: "Rapport contrôle portes",         hasDoc: false },
+  { t: "Contrôle quai niveleur",           due: 5,   prio: "HIGH",     prov: null,     doc: "Rapport contrôle quai niveleur",  hasDoc: false },
+  { t: "Contrôle BAES / éclairage secours",due: -3,  prio: "HIGH",     prov: "prov-2", doc: "Rapport BAES",                    hasDoc: false },
+];
+SITE1_OBL.forEach((o, k) => {
+  obligations.push({
+    id: `obl-s1-${k + 1}`, company_id: C, title: o.t, category: "site", module: "SITES",
+    related_entity_type: "SITE", related_entity_id: "site-1", provider_id: o.prov,
+    description: "Obligation de sécurité du site à suivre.", notes: null,
+    due_date: iso(o.due), frequency: "annuelle", priority: o.prio, status: compliance(o.due),
+    responsible_id: "p-qhse", supervisor_id: "p-qhse",
+    linked_vehicle_id: null, linked_employee_id: null, linked_equipment_id: null,
+    expected_document: o.doc, expected_proof: null, comments: null, ...archivable,
+  });
+});
+
+// Documents rattachés au site (et à certaines obligations ci-dessus).
+let docSeq = documents.length;
+function pushDoc(title: string, type: string, exp: number, extra: Row) {
+  docSeq += 1;
+  documents.push({
+    id: `doc-s1-${docSeq}`, company_id: C, title, document_type: type, file_url: null, file_path: null,
+    expiration_date: iso(exp), status: exp < 0 ? "EXPIRED" : "COMPLIANT",
+    obligation_id: null, vehicle_id: null, employee_id: null, equipment_id: null, epi_id: null,
+    provider_id: null, site_id: "site-1", contract_id: null, audit_id: null, incident_id: null,
+    non_conformity_id: null, certification_id: null, responsible_id: "p-qhse", supervisor_id: "p-qhse",
+    uploaded_by: "p-admin", ...archivable, ...extra,
+  });
+}
+pushDoc("Rapport électrique 2026", "Rapport", 200, { obligation_id: "obl-s1-1" });
+pushDoc("Rapport contrôle alarme", "Rapport", 90, { obligation_id: "obl-s1-2" });
+pushDoc("Registre de sécurité", "Registre", 400, { obligation_id: "obl-s1-3" });
+pushDoc("Plan d'évacuation", "Plan", 500, { obligation_id: "obl-s1-4" });
+pushDoc("Attestation assurance locaux", "Assurance", 25, {});
+pushDoc("Contrat maintenance alarme (signé)", "Contrat de maintenance", 300, {});
+
+// Documents rattachés à un équipement et à un salarié (fiches équipement / salarié).
+pushDoc("Rapport VGP chariot élévateur", "Rapport de vérification", 40, { site_id: null, equipment_id: "eqp-2" });
+pushDoc("Certificat de conformité chariot", "Certificat", 300, { site_id: null, equipment_id: "eqp-2" });
+pushDoc("Attestation CACES R489", "Document salarié", 15, { site_id: null, employee_id: "emp-3" });
+
+// Contrats du site (relient les prestataires au site).
+contracts.push(
+  { id: "ctr-s1-1", company_id: C, title: "Contrat maintenance électrique - Entrepôt Marseille", contract_type: "Maintenance électrique", provider_id: "prov-2", site_id: "site-1", related_entity_type: null, related_entity_id: null, start_date: iso(-300), end_date: iso(120), renewal_date: iso(120), notice_period_days: 30, amount: 4200, currency: "EUR", responsible_id: "p-maint", supervisor_id: "p-qhse", status: "ACTIVE", document_id: null, notes: null, ...archivable },
+  { id: "ctr-s1-2", company_id: C, title: "Contrat nettoyage - Entrepôt Marseille", contract_type: "Nettoyage", provider_id: "prov-7", site_id: "site-1", related_entity_type: null, related_entity_id: null, start_date: iso(-200), end_date: iso(60), renewal_date: iso(60), notice_period_days: 30, amount: 18000, currency: "EUR", responsible_id: "p-expl", supervisor_id: "p-qhse", status: "ACTIVE", document_id: null, notes: null, ...archivable },
+  { id: "ctr-s1-3", company_id: C, title: "Contrat télésurveillance - Entrepôt Marseille", contract_type: "Télésurveillance", provider_id: "prov-8", site_id: "site-1", related_entity_type: null, related_entity_id: null, start_date: iso(-400), end_date: iso(15), renewal_date: iso(15), notice_period_days: 60, amount: 9600, currency: "EUR", responsible_id: "p-expl", supervisor_id: "p-admin", status: "TO_RENEW", document_id: null, notes: null, ...archivable },
+);
+
+// Actions rattachées au site.
+let actSeq = actions.length;
+function pushAction(title: string, cat: string, status: string, prio: string, due: number, who: string) {
+  actSeq += 1;
+  actions.push({
+    id: `act-s1-${actSeq}`, company_id: C, title, description: "Tâche liée à l'Entrepôt Marseille.", category: cat,
+    related_entity_type: "SITE", related_entity_id: "site-1", source: cat === "Relance" ? "Relance" : null,
+    expected_proof: null, status, priority: prio, due_date: iso(due), assigned_to: who, supervisor_id: "p-qhse",
+    obligation_id: null, comment: null, completed_at: null, completed_by: null, created_by: "p-admin", archive_reason: null, ...archivable,
+  });
+}
+pushAction("Relancer le prestataire incendie", "Relance", "TODO", "HIGH", -2, "p-qhse");
+pushAction("Ajouter le rapport de contrôle des racks", "QHSE", "TODO", "HIGH", 10, "p-maint");
+pushAction("Planifier le contrôle du quai niveleur", "Maintenance", "PLANNED", "HIGH", 5, "p-maint");
+pushAction("Corriger la non-conformité gaz", "Maintenance", "IN_PROGRESS", "CRITICAL", 5, "p-maint");
+pushAction("Mettre à jour le registre de sécurité", "QHSE", "TODO", "MEDIUM", 20, "p-qhse");
+
+// Non-conformités du site.
+non_conformities.push(
+  { id: "nc-s1-1", company_id: C, title: "Rapport contrôle racks manquant", description: "Le rapport de vérification des racks n'a pas été fourni.", severity: "MEDIUM", source_type: "Document", source_id: null, site_id: "site-1", related_entity_type: "SITE", related_entity_id: "site-1", detected_at: iso(-6), due_date: iso(15), responsible_id: "p-qhse", supervisor_id: "p-admin", status: "OPEN", corrective_action_id: null, document_id: null, ...archivable },
+  { id: "nc-s1-2", company_id: C, title: "Registre de sécurité incomplet", description: "Mises à jour manquantes dans le registre.", severity: "MEDIUM", source_type: "Audit", source_id: null, site_id: "site-1", related_entity_type: "SITE", related_entity_id: "site-1", detected_at: iso(-12), due_date: iso(25), responsible_id: "p-qhse", supervisor_id: "p-admin", status: "IN_PROGRESS", corrective_action_id: null, document_id: null, ...archivable },
+  { id: "nc-s1-3", company_id: C, title: "Assurance locaux à renouveler", description: "Attestation d'assurance des locaux proche de l'échéance.", severity: "HIGH", source_type: "Contrôle", source_id: null, site_id: "site-1", related_entity_type: "SITE", related_entity_id: "site-1", detected_at: iso(-3), due_date: iso(25), responsible_id: "p-admin", supervisor_id: "p-admin", status: "OPEN", corrective_action_id: null, document_id: null, ...archivable },
+  { id: "nc-s1-4", company_id: C, title: "Quai niveleur à contrôler", description: "Contrôle réglementaire du quai niveleur en retard.", severity: "HIGH", source_type: "Inspection", source_id: null, site_id: "site-1", related_entity_type: "SITE", related_entity_id: "site-1", detected_at: iso(-4), due_date: iso(5), responsible_id: "p-maint", supervisor_id: "p-qhse", status: "OPEN", corrective_action_id: null, document_id: null, ...archivable },
+);
 
 // --- Incidents & observations sécurité ---------------------------------
 type IncSeed = { id: string; type: string; title: string; site_id: string | null; zone: string | null; severity: string; status: string; occurred: number; corrective?: string };

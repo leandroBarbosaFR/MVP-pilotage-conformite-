@@ -43,8 +43,8 @@ const STEPS: DriveStep[] = [
   {
     element: "[data-tour='score']",
     popover: {
-      title: "Score de conformité",
-      description: "La répartition conforme / à surveiller / critique de vos obligations.",
+      title: "État du suivi",
+      description: "La répartition à jour / à surveiller / critique de vos obligations.",
     },
   },
   {
