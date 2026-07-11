@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createAction } from "@/lib/actions/entities";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/app/add-panel";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { RELATED_ENTITY_LABELS } from "@/types/enums";
 import { ACTION_STATUS_LABELS, PRIORITY_LABELS } from "@/lib/status";
@@ -128,7 +128,7 @@ export function ActionForm({
         <Textarea name="description" />
       </div>
       <div className="sm:col-span-2">
-        <Button type="submit">Enregistrer l&apos;action</Button>
+        <SubmitButton>Enregistrer l&apos;action</SubmitButton>
       </div>
     </form>
   );

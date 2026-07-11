@@ -4,13 +4,12 @@ import { requireContext } from "@/lib/queries/auth";
 import { getSiteDetail, getProfiles } from "@/lib/queries/entities";
 import { createObligation } from "@/lib/actions/entities";
 import { PageHeader } from "@/components/app/page-header";
-import { AddPanel } from "@/components/app/add-panel";
+import { AddPanel, SubmitButton } from "@/components/app/add-panel";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { DetailGrid, DetailField, DetailSection } from "@/components/app/detail-field";
 import { Table, THead, TR, TH, TD, EmptyRow } from "@/components/ui/table";
 import { ClickableRow } from "@/components/app/clickable-row";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import {
   OBLIGATION_STATUS_LABELS,
@@ -393,7 +392,7 @@ function SiteObligationForm({
         <Input name="expected_document" placeholder="Ex : Rapport de contrôle" />
       </div>
       <div className="sm:col-span-2">
-        <Button type="submit">Enregistrer l&apos;obligation</Button>
+        <SubmitButton>Enregistrer l&apos;obligation</SubmitButton>
       </div>
     </form>
   );

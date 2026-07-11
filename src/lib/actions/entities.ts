@@ -47,14 +47,16 @@ export async function toggleArchive(table: string, id: string, archive = true) {
   if (!ARCHIVABLE.has(table)) throw new Error("Table non autorisée");
   const { profile, company } = await requireContext();
   const supabase = await createClient();
-  await supabase
+  const { error } = await supabase
     .from(table)
     .update({
       is_archived: archive,
       archived_at: archive ? new Date().toISOString() : null,
       archived_by: archive ? profile.id : null,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("company_id", company.id);
+  if (error) throw new Error(error.message);
   await logActivity(supabase, company.id, profile.id, {
     actionType: archive ? "ARCHIVE" : "RESTORE",
     entityType: table,
@@ -92,7 +94,7 @@ export async function createObligation(formData: FormData) {
     comments: s(formData.get("comments")),
   });
   revalidatePath("/dashboard/obligations");
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
 }
 
 export async function createAction(formData: FormData) {
@@ -117,7 +119,7 @@ export async function createAction(formData: FormData) {
     created_by: profile.id,
   });
   revalidatePath("/dashboard/actions");
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
 }
 
 /** Crée une action corrective rattachée à une non-conformité. */
@@ -159,7 +161,7 @@ export async function createCorrectiveAction(ncId: string) {
   });
   revalidatePath("/dashboard/non-conformities");
   revalidatePath("/dashboard/actions");
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
 }
 
 /** Modifie une action existante (fiche action, réversible). */
@@ -212,7 +214,7 @@ export async function updateActionStatus(id: string, status: string) {
     .eq("id", id);
   revalidatePath("/dashboard/actions");
   revalidatePath(`/dashboard/actions/${id}`);
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
 }
 
 export async function createVehicle(formData: FormData) {
@@ -243,7 +245,7 @@ export async function createVehicle(formData: FormData) {
     supervisor_id: s(formData.get("supervisor_id")),
   });
   revalidatePath("/dashboard/vehicles");
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
 }
 
 export async function createEmployee(formData: FormData) {
@@ -267,6 +269,7 @@ export async function createEmployee(formData: FormData) {
     supervisor_id: s(formData.get("supervisor_id")),
   });
   revalidatePath("/dashboard/employees");
+  revalidatePath("/dashboard", "layout");
 }
 
 /** Enregistre l'URL de la photo (avatar) d'un salarié. */
@@ -305,7 +308,7 @@ export async function createCertification(formData: FormData) {
   if (empId) revalidatePath(`/dashboard/employees/${empId}`);
   revalidatePath("/dashboard/employees");
   revalidatePath("/dashboard/employees/echeances");
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
 }
 
 /** Met à jour une absence existante (sans diagnostic médical). */
@@ -336,7 +339,7 @@ export async function updateAbsence(formData: FormData) {
     entityId: id,
   });
   if (empId) revalidatePath(`/dashboard/employees/${empId}`);
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
 }
 
 /** Absence / aptitude d'un salarié (sans diagnostic médical). */
@@ -361,7 +364,7 @@ export async function createAbsence(formData: FormData) {
   });
   if (empId) revalidatePath(`/dashboard/employees/${empId}`);
   revalidatePath("/dashboard/employees");
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
 }
 
 export async function createEquipment(formData: FormData) {
@@ -386,7 +389,7 @@ export async function createEquipment(formData: FormData) {
     supervisor_id: s(formData.get("supervisor_id")),
   });
   revalidatePath("/dashboard/equipments");
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
 }
 
 export async function createEpi(formData: FormData) {
@@ -404,7 +407,7 @@ export async function createEpi(formData: FormData) {
     supervisor_id: s(formData.get("supervisor_id")),
   });
   revalidatePath("/dashboard/epi");
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
 }
 
 /** Crée l'enregistrement document après upload du fichier dans Storage (côté client). */
@@ -461,7 +464,7 @@ export async function createDocument(input: {
     label: input.title,
   });
   revalidatePath("/dashboard/documents");
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
 }
 
 // --- Modules métier (Prompt 2) ----------------------------------------
@@ -485,7 +488,63 @@ export async function createSite(formData: FormData) {
     notes: s(formData.get("notes")),
   });
   revalidatePath("/dashboard/sites");
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
+}
+
+/** Modifie un site existant. */
+export async function updateSite(formData: FormData) {
+  const { company, profile } = await requireContext();
+  const supabase = await createClient();
+  const id = s(formData.get("id"));
+  if (!id) return;
+  const surface = s(formData.get("surface_area"));
+  const name = s(formData.get("name")) ?? "Sans nom";
+  const { error } = await supabase
+    .from("sites")
+    .update({
+      name,
+      site_type: s(formData.get("site_type")),
+      address: s(formData.get("address")),
+      city: s(formData.get("city")),
+      postal_code: s(formData.get("postal_code")),
+      country: s(formData.get("country")),
+      surface_area: surface ? Number(surface) : null,
+      activity_type: s(formData.get("activity_type")),
+      manager_id: s(formData.get("manager_id")),
+      supervisor_id: s(formData.get("supervisor_id")),
+      notes: s(formData.get("notes")),
+    })
+    .eq("id", id)
+    .eq("company_id", company.id);
+  if (error) throw new Error(error.message);
+  await logActivity(supabase, company.id, profile.id, {
+    actionType: "UPDATE",
+    entityType: "sites",
+    entityId: id,
+    label: name,
+  });
+  revalidatePath(`/dashboard/sites/${id}`);
+  revalidatePath("/dashboard/sites");
+  revalidatePath("/dashboard", "layout");
+}
+
+/** Supprime définitivement un site (échoue si des éléments y sont rattachés). */
+export async function deleteSite(id: string) {
+  const { company, profile } = await requireContext();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("sites")
+    .delete()
+    .eq("id", id)
+    .eq("company_id", company.id);
+  if (error) throw new Error(error.message);
+  await logActivity(supabase, company.id, profile.id, {
+    actionType: "DELETE",
+    entityType: "sites",
+    entityId: id,
+  });
+  revalidatePath("/dashboard/sites");
+  revalidatePath("/dashboard", "layout");
 }
 
 export async function createProvider(formData: FormData) {
@@ -511,7 +570,7 @@ export async function createProvider(formData: FormData) {
     notes: s(formData.get("notes")),
   });
   revalidatePath("/dashboard/providers");
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
 }
 
 export async function createContract(formData: FormData) {
@@ -537,7 +596,7 @@ export async function createContract(formData: FormData) {
     notes: s(formData.get("notes")),
   });
   revalidatePath("/dashboard/contracts");
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
 }
 
 export async function createAudit(formData: FormData) {
@@ -561,7 +620,7 @@ export async function createAudit(formData: FormData) {
     notes: s(formData.get("notes")),
   });
   revalidatePath("/dashboard/audits");
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
 }
 
 export async function createNonPilotix(formData: FormData) {
@@ -580,7 +639,7 @@ export async function createNonPilotix(formData: FormData) {
     status: s(formData.get("status")) ?? "OPEN",
   });
   revalidatePath("/dashboard/non-conformities");
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
 }
 
 export async function createIncident(formData: FormData) {
@@ -602,7 +661,7 @@ export async function createIncident(formData: FormData) {
     related_entity_id: s(formData.get("related_entity_id")) ?? s(formData.get("site_id")),
   });
   revalidatePath("/dashboard/incidents");
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
 }
 
 /** Crée une action corrective rattachée à un incident. */
@@ -638,7 +697,7 @@ export async function createIncidentCorrectiveAction(incidentId: string) {
   revalidatePath("/dashboard/incidents");
   revalidatePath(`/dashboard/incidents/${incidentId}`);
   revalidatePath("/dashboard/actions");
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
 }
 
 /**
@@ -776,13 +835,13 @@ export async function markAllNotificationsRead() {
     .or(`user_id.eq.${profile.id},user_id.is.null`)
     .eq("is_read", false);
   revalidatePath("/dashboard/notifications");
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
 }
 
 export async function loadDemoData() {
   await requireContext();
   const supabase = await createClient();
   const { data } = await supabase.rpc("load_demo_data");
-  revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
   return String(data ?? "");
 }

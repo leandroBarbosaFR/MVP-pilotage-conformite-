@@ -2,13 +2,12 @@ import { requireContext } from "@/lib/queries/auth";
 import { getProviders, getProfiles, getSiteOptions } from "@/lib/queries/entities";
 import { createProvider } from "@/lib/actions/entities";
 import { PageHeader } from "@/components/app/page-header";
-import { AddPanel } from "@/components/app/add-panel";
+import { AddPanel, SubmitButton } from "@/components/app/add-panel";
 import { AiActionLink } from "@/components/ai/ai-action-link";
 import { ListToolbar } from "@/components/app/list-toolbar";
 import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { ReminderDialog } from "@/components/app/reminder-dialog";
-import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { ListView } from "@/components/app/list-view";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -210,7 +209,7 @@ function ProviderForm({ profiles, sites }: { profiles: Profile[]; sites: { id: s
         <Textarea name="notes" />
       </div>
       <div className="sm:col-span-2">
-        <Button type="submit">Enregistrer le prestataire</Button>
+        <SubmitButton>Enregistrer le prestataire</SubmitButton>
       </div>
     </form>
   );

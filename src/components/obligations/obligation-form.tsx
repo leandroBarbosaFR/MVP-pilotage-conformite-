@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createObligation } from "@/lib/actions/entities";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/app/add-panel";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { MODULE_LABELS, RELATED_ENTITY_LABELS } from "@/types/enums";
 import {
@@ -153,7 +153,7 @@ export function ObligationForm({
         <Textarea name="description" />
       </div>
       <div className="sm:col-span-2">
-        <Button type="submit">Enregistrer l&apos;obligation</Button>
+        <SubmitButton>Enregistrer l&apos;obligation</SubmitButton>
       </div>
     </form>
   );

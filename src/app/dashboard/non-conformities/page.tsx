@@ -2,7 +2,7 @@ import { requireContext } from "@/lib/queries/auth";
 import { getNonConformities, getSites, getProfiles, getEntityNameMap, getActions } from "@/lib/queries/entities";
 import { createNonPilotix } from "@/lib/actions/entities";
 import { PageHeader } from "@/components/app/page-header";
-import { AddPanel } from "@/components/app/add-panel";
+import { AddPanel, SubmitButton } from "@/components/app/add-panel";
 import { AiActionLink } from "@/components/ai/ai-action-link";
 import { ListToolbar } from "@/components/app/list-toolbar";
 import { Pagination } from "@/components/app/pagination";
@@ -10,7 +10,6 @@ import { ArchiveButton } from "@/components/app/archive-button";
 import Link from "next/link";
 import { CreateCorrectiveActionButton } from "@/components/nc/create-corrective-action-button";
 import { RemoveCorrectiveActionButton } from "@/components/nc/remove-corrective-action-button";
-import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { ListView } from "@/components/app/list-view";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -174,7 +173,7 @@ function NcForm({ sites, profiles }: { sites: Site[]; profiles: Profile[] }) {
         <Textarea name="description" />
       </div>
       <div className="sm:col-span-2">
-        <Button type="submit">Enregistrer la non-conformité</Button>
+        <SubmitButton>Enregistrer la non-conformité</SubmitButton>
       </div>
     </form>
   );

@@ -2,17 +2,15 @@ import { requireContext } from "@/lib/queries/auth";
 import { getSites, getProfiles, getEntityComplianceMap } from "@/lib/queries/entities";
 import { createSite } from "@/lib/actions/entities";
 import { PageHeader } from "@/components/app/page-header";
-import { AddPanel } from "@/components/app/add-panel";
+import { AddPanel, SubmitButton } from "@/components/app/add-panel";
 import { ListToolbar } from "@/components/app/list-toolbar";
 import { Pagination } from "@/components/app/pagination";
-import { ArchiveButton } from "@/components/app/archive-button";
-import { Button } from "@/components/ui/button";
-import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { ListView } from "@/components/app/list-view";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { SiteFields } from "@/components/sites/site-fields";
+import { SiteRowActions } from "@/components/sites/site-row-actions";
 import { STATUS_LABELS } from "@/lib/status";
 import { formatDate } from "@/lib/utils";
-import { SITE_TYPES } from "@/types/enums";
 import type { Profile } from "@/lib/types/database";
 
 const PAGE_SIZE = 20;
@@ -61,6 +59,7 @@ export default async function SitesPage({
         rows={rows}
         getKey={(s) => s.id}
         href={(s) => `/dashboard/sites/${s.id}`}
+        showEye={false}
         empty="Aucun site."
         columns={[
           { header: "Nom", cell: (s) => <span className="font-medium">{s.name}</span> },
@@ -81,7 +80,7 @@ export default async function SitesPage({
             { label: "Responsable", value: profName(s.manager_id) },
           ],
         })}
-        actions={(s) => <ArchiveButton table="sites" id={s.id} archived={s.is_archived} />}
+        actions={(s) => <SiteRowActions site={s} profiles={profiles} />}
       />
 
       <Pagination basePath="/dashboard/sites" page={page} count={count} pageSize={PAGE_SIZE} params={{ q: sp.q, archived: sp.archived }} />
@@ -92,64 +91,9 @@ export default async function SitesPage({
 function SiteForm({ profiles }: { profiles: Profile[] }) {
   return (
     <form action={createSite} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <SiteFields profiles={profiles} />
       <div className="sm:col-span-2">
-        <Label>Nom</Label>
-        <Input name="name" required />
-      </div>
-      <div>
-        <Label>Type de site</Label>
-        <Select name="site_type" defaultValue={SITE_TYPES[0]}>
-          {SITE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-        </Select>
-      </div>
-      <div>
-        <Label>Type d&apos;activité</Label>
-        <Input name="activity_type" />
-      </div>
-      <div>
-        <Label>Adresse</Label>
-        <Input name="address" />
-      </div>
-      <div>
-        <Label>Ville</Label>
-        <Input name="city" />
-      </div>
-      <div>
-        <Label>Code postal</Label>
-        <Input name="postal_code" />
-      </div>
-      <div>
-        <Label>Pays</Label>
-        <Input name="country" defaultValue="France" />
-      </div>
-      <div>
-        <Label>Surface (m²)</Label>
-        <Input name="surface_area" type="number" />
-      </div>
-      <div>
-        <Label>Responsable du site</Label>
-        <Select name="manager_id" defaultValue="">
-          <option value="">Non assigné</option>
-          {profiles.map((p) => (
-            <option key={p.id} value={p.id}>{[p.first_name, p.last_name].filter(Boolean).join(" ") || p.email}</option>
-          ))}
-        </Select>
-      </div>
-      <div>
-        <Label>Superviseur</Label>
-        <Select name="supervisor_id" defaultValue="">
-          <option value="">Non assigné</option>
-          {profiles.map((p) => (
-            <option key={p.id} value={p.id}>{[p.first_name, p.last_name].filter(Boolean).join(" ") || p.email}</option>
-          ))}
-        </Select>
-      </div>
-      <div className="sm:col-span-2">
-        <Label>Notes</Label>
-        <Textarea name="notes" />
-      </div>
-      <div className="sm:col-span-2">
-        <Button type="submit">Enregistrer le site</Button>
+        <SubmitButton>Enregistrer le site</SubmitButton>
       </div>
     </form>
   );

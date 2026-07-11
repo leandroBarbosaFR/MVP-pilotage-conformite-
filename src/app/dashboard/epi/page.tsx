@@ -2,11 +2,10 @@ import { requireContext } from "@/lib/queries/auth";
 import { getEpis, getEmployees, getEmployeeNames, getProfiles } from "@/lib/queries/entities";
 import { createEpi } from "@/lib/actions/entities";
 import { PageHeader } from "@/components/app/page-header";
-import { AddPanel } from "@/components/app/add-panel";
+import { AddPanel, SubmitButton } from "@/components/app/add-panel";
 import { ListToolbar } from "@/components/app/list-toolbar";
 import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
-import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { ListView } from "@/components/app/list-view";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -145,7 +144,7 @@ function EpiForm({ employees, profiles }: { employees: Employee[]; profiles: Pro
         </Select>
       </div>
       <div className="sm:col-span-2">
-        <Button type="submit">Enregistrer l&apos;EPI</Button>
+        <SubmitButton>Enregistrer l&apos;EPI</SubmitButton>
       </div>
     </form>
   );

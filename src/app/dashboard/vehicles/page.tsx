@@ -8,11 +8,10 @@ import {
 } from "@/lib/queries/entities";
 import { createVehicle } from "@/lib/actions/entities";
 import { PageHeader } from "@/components/app/page-header";
-import { AddPanel } from "@/components/app/add-panel";
+import { AddPanel, SubmitButton } from "@/components/app/add-panel";
 import { ListToolbar } from "@/components/app/list-toolbar";
 import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
-import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { ListView } from "@/components/app/list-view";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -206,7 +205,7 @@ function VehicleForm({
         <Input name="status" defaultValue="actif" />
       </div>
       <div className="sm:col-span-2">
-        <Button type="submit">Enregistrer le véhicule</Button>
+        <SubmitButton>Enregistrer le véhicule</SubmitButton>
       </div>
     </form>
   );

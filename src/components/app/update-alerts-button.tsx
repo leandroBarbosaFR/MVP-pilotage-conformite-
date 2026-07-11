@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react/dist/ssr";
+import { buttonVariants } from "@/components/ui/button";
 import { generateNotificationsForDueItems } from "@/lib/actions/notifications";
 
 export function UpdateAlertsButton() {
@@ -23,7 +24,7 @@ export function UpdateAlertsButton() {
             }
           })
         }
-        className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
+        className={buttonVariants({ variant: "outline", size: "sm" })}
       >
         <ArrowsClockwiseIcon size={16} className={pending ? "animate-spin" : "text-accent"} />
         {pending ? "Mise à jour…" : "Mettre à jour les alertes"}

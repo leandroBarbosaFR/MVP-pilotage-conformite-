@@ -542,30 +542,42 @@ export const incidents: Row[] = INC_SEED.map((n) => ({
   related_entity_id: n.site_id, corrective_action_id: n.corrective ?? null, document_id: null, ...archivable,
 }));
 
-// Registre des tables pour le client mock
-export const TABLES: Record<string, Row[]> = {
-  companies: [company],
-  profiles,
-  employees,
-  employee_certifications,
-  employee_absences,
-  epi,
-  equipments,
-  vehicles,
-  obligations,
-  documents,
-  actions,
-  notifications,
-  notification_settings,
-  imports,
-  sites,
-  providers,
-  contracts,
-  audits,
-  non_conformities,
-  incidents,
-  reminders: [],
-  ai_interactions: [],
-  audit_logs: [],
-  pilot_leads: [],
-};
+// Registre des tables pour le client mock.
+//
+// Épinglé sur `globalThis` : sans cela, chaque ré-évaluation du module (HMR /
+// recompilation en dev, ou nouveau rendu serveur) réinitialiserait les données
+// depuis la graine et les écritures en mémoire (ajout, modification, archivage)
+// seraient perdues dès qu'on quitte la page. Le store survit ainsi tant que le
+// processus du serveur tourne. NB : en mode démo les écritures restent
+// éphémères (perdues au redémarrage) — pour une vraie persistance, désactiver
+// `NEXT_PUBLIC_DEMO_MODE` et brancher Supabase.
+const mockGlobal = globalThis as unknown as { __mockTables?: Record<string, Row[]> };
+
+export const TABLES: Record<string, Row[]> =
+  mockGlobal.__mockTables ??
+  (mockGlobal.__mockTables = {
+    companies: [company],
+    profiles,
+    employees,
+    employee_certifications,
+    employee_absences,
+    epi,
+    equipments,
+    vehicles,
+    obligations,
+    documents,
+    actions,
+    notifications,
+    notification_settings,
+    imports,
+    sites,
+    providers,
+    contracts,
+    audits,
+    non_conformities,
+    incidents,
+    reminders: [],
+    ai_interactions: [],
+    audit_logs: [],
+    pilot_leads: [],
+  });

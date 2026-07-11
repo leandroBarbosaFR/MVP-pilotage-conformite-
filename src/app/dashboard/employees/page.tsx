@@ -9,7 +9,7 @@ import {
 } from "@/lib/queries/entities";
 import { createEmployee } from "@/lib/actions/entities";
 import { PageHeader } from "@/components/app/page-header";
-import { AddPanel } from "@/components/app/add-panel";
+import { AddPanel, SubmitButton } from "@/components/app/add-panel";
 import { ListToolbar } from "@/components/app/list-toolbar";
 import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
@@ -257,7 +257,7 @@ function EmployeeForm({ profiles, sites }: { profiles: Profile[]; sites: { id: s
         </Select>
       </div>
       <div className="sm:col-span-2">
-        <Button type="submit">Enregistrer le salarié</Button>
+        <SubmitButton>Enregistrer le salarié</SubmitButton>
       </div>
     </form>
   );

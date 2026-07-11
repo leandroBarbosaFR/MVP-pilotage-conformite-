@@ -14,13 +14,12 @@ import {
 import { createCertification, createAbsence, updateAbsence } from "@/lib/actions/entities";
 import { PageHeader } from "@/components/app/page-header";
 import { AvatarUpload } from "@/components/employees/avatar-upload";
-import { AddPanel } from "@/components/app/add-panel";
+import { AddPanel, SubmitButton } from "@/components/app/add-panel";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { DetailGrid, DetailField, DetailSection } from "@/components/app/detail-field";
 import { Table, THead, TR, TH, TD, EmptyRow } from "@/components/ui/table";
 import { ClickableRow } from "@/components/app/clickable-row";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import {
   CATEGORY_LABELS,
@@ -340,7 +339,7 @@ function CertificationForm({ employeeId, profiles }: { employeeId: string; profi
         <Textarea name="notes" rows={2} />
       </div>
       <div className="sm:col-span-2">
-        <Button type="submit">Enregistrer l&apos;échéance</Button>
+        <SubmitButton>Enregistrer l&apos;échéance</SubmitButton>
       </div>
     </form>
   );
@@ -399,7 +398,7 @@ function AbsenceForm({ employeeId, absence }: { employeeId: string; absence?: Em
         <Textarea name="internal_notes" rows={2} defaultValue={absence?.internal_notes ?? ""} />
       </div>
       <div className="sm:col-span-2">
-        <Button type="submit">{edit ? "Enregistrer les modifications" : "Enregistrer"}</Button>
+        <SubmitButton>{edit ? "Enregistrer les modifications" : "Enregistrer"}</SubmitButton>
       </div>
     </form>
   );

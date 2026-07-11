@@ -3,12 +3,11 @@ import { requireContext } from "@/lib/queries/auth";
 import { getAction, getProfiles } from "@/lib/queries/entities";
 import { updateAction } from "@/lib/actions/entities";
 import { PageHeader } from "@/components/app/page-header";
-import { AddPanel } from "@/components/app/add-panel";
+import { AddPanel, SubmitButton } from "@/components/app/add-panel";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { DetailGrid, DetailField } from "@/components/app/detail-field";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   ACTION_STATUS_LABELS,
   PRIORITY_LABELS,
@@ -128,7 +127,7 @@ function ActionEditForm({ action, profiles }: { action: ActionRow; profiles: Pro
         <Textarea name="comment" defaultValue={action.comment ?? ""} rows={2} />
       </div>
       <div className="sm:col-span-2">
-        <Button type="submit">Enregistrer les modifications</Button>
+        <SubmitButton>Enregistrer les modifications</SubmitButton>
       </div>
     </form>
   );

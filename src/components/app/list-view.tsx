@@ -31,6 +31,7 @@ export function ListView<T>({
   empty,
   href,
   actions,
+  showEye = true,
 }: {
   rows: T[];
   getKey: (row: T) => string;
@@ -39,12 +40,14 @@ export function ListView<T>({
   empty: string;
   href?: (row: T) => string;
   actions?: (row: T) => React.ReactNode;
+  /** Affiche l'icône « œil » vers le détail (défaut : true). La ligne reste cliquable via `href`. */
+  showEye?: boolean;
 }) {
   const hasActionsCol = Boolean(href || actions);
   const colSpan = columns.length + (hasActionsCol ? 1 : 0);
 
   const eye = (row: T, extra?: string) =>
-    href ? (
+    href && showEye ? (
       <Link
         href={href(row)}
         aria-label="Voir le détail"

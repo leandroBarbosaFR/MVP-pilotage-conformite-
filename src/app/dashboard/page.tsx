@@ -6,9 +6,9 @@ import {
   ClipboardTextIcon as ClipboardList,
   ClockIcon as Clock,
   FileDashedIcon as FileWarning,
-  CalendarBlankIcon as Calendar,
   DownloadSimpleIcon as Download,
 } from "@phosphor-icons/react/dist/ssr";
+import { buttonVariants } from "@/components/ui/button";
 import { requireContext } from "@/lib/queries/auth";
 import {
   getDashboardStats,
@@ -32,7 +32,7 @@ import {
   PRIORITY_LABELS,
   complianceFromActionStatus,
 } from "@/lib/status";
-import { formatDate, daysUntil } from "@/lib/utils";
+import { formatDate, daysUntil, cn } from "@/lib/utils";
 import type { ComplianceStatus, PriorityLevel } from "@/lib/types/database";
 
 const PRIORITY_TONE: Record<PriorityLevel, ComplianceStatus> = {
@@ -112,6 +112,7 @@ export default async function DashboardPage() {
   const alertsTop = alerts.slice(0, 7);
 
   const today = new Date().toLocaleDateString("fr-FR", {
+    weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -124,17 +125,17 @@ export default async function DashboardPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Tableau de bord</h1>
           <p className="mt-1 text-sm text-muted-foreground">Vue globale de votre suivi</p>
+          <p className="mt-0.5 text-xs capitalize text-muted-foreground">{today}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface p-1.5">
           {canGenerate ? <UpdateAlertsButton /> : null}
           <AiActionLink action="direction-synthesis" label="Synthèse IA" />
-          <span className="inline-flex items-center gap-2">
-            <Calendar size={16} className="text-muted-foreground" />
-            {today}
-          </span>
           <Link
             href="/dashboard/rapports"
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
+              "border-primary/20 bg-primary/10 text-primary hover:bg-primary/20"
+            )}
           >
             <Download size={16} />
             Exporter le rapport
@@ -144,12 +145,12 @@ export default async function DashboardPage() {
 
       {/* Statistiques */}
       <div data-tour="stats" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <StatCard label="Suivi à jour" value={hasData ? `${score} %` : "—"} tone="ok" icon={CheckCircle2} />
-        <StatCard label="À surveiller" value={watchElements} tone="warn" icon={AlertTriangle} hint="Éléments" />
-        <StatCard label="Éléments critiques" value={criticalElements} tone="danger" icon={AlertOctagon} hint="Éléments" />
-        <StatCard label="Total obligations" value={total} tone="none" icon={ClipboardList} hint="Tous types" />
-        <StatCard label="Actions en retard" value={stats.overdue_actions} tone="danger" icon={Clock} />
-        <StatCard label="Documents manquants" value={s.missing_documents} tone="warn" icon={FileWarning} />
+        <StatCard label="Suivi à jour" value={hasData ? `${score} %` : "—"} tone="ok" icon={CheckCircle2} href="/dashboard/obligations" />
+        <StatCard label="À surveiller" value={watchElements} tone="warn" icon={AlertTriangle} hint="Éléments" href="/dashboard/obligations?status=EXPIRING_SOON" />
+        <StatCard label="Éléments critiques" value={criticalElements} tone="danger" icon={AlertOctagon} hint="Éléments" href="/dashboard/obligations?status=EXPIRED" />
+        <StatCard label="Total obligations" value={total} tone="none" icon={ClipboardList} hint="Tous types" href="/dashboard/obligations" />
+        <StatCard label="Actions en retard" value={stats.overdue_actions} tone="danger" icon={Clock} href="/dashboard/actions" />
+        <StatCard label="Documents manquants" value={s.missing_documents} tone="warn" icon={FileWarning} href="/dashboard/documents?view=missing" />
       </div>
 
       {!hasData ? (
@@ -426,7 +427,7 @@ function ScoreDonut({
           {score}
           <span className="text-lg">%</span>
         </span>
-        <span className="text-xs text-muted-foreground">Conformité globale</span>
+        <span className="text-[10px] text-muted-foreground">Conformité globale</span>
       </div>
     </div>
   );
