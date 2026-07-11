@@ -11,10 +11,12 @@ import { useToast } from "@/components/ui/toast";
 const BUCKET = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || "documents";
 
 export function AvatarUpload({
+  companyId,
   employeeId,
   name,
   current,
 }: {
+  companyId: string;
   employeeId: string;
   name: string;
   current: string | null;
@@ -33,7 +35,9 @@ export function AvatarUpload({
     start(async () => {
       try {
         const supabase = createClient();
-        const path = `${employeeId}/avatar_${Date.now()}_${file.name}`;
+        // Le 1er dossier DOIT être le company_id (policy RLS du bucket Storage).
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const path = `${companyId}/avatars/${employeeId}_${Date.now()}_${safeName}`;
         const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true });
         if (upErr) {
           setError("Échec de l'envoi de la photo.");

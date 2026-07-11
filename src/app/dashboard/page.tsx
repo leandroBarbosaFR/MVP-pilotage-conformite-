@@ -9,6 +9,9 @@ import {
   DownloadSimpleIcon as Download,
 } from "@phosphor-icons/react/dist/ssr";
 import { buttonVariants } from "@/components/ui/button";
+import { DemoToggle } from "@/components/app/demo-toggle";
+import { DEMO_ALLOWED, DEMO_COOKIE, resolveDemoMode } from "@/lib/demo";
+import { cookies } from "next/headers";
 import { requireContext } from "@/lib/queries/auth";
 import {
   getDashboardStats,
@@ -118,6 +121,11 @@ export default async function DashboardPage() {
     year: "numeric",
   });
 
+  // Bouton démo/live — dev uniquement (jamais en production).
+  const demoActive = DEMO_ALLOWED
+    ? resolveDemoMode((await cookies()).get(DEMO_COOKIE)?.value)
+    : false;
+
   return (
     <div className="space-y-6">
       {/* En-tête */}
@@ -128,6 +136,7 @@ export default async function DashboardPage() {
           <p className="mt-0.5 text-xs capitalize text-muted-foreground">{today}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface p-1.5">
+          {DEMO_ALLOWED ? <DemoToggle active={demoActive} /> : null}
           {canGenerate ? <UpdateAlertsButton /> : null}
           <AiActionLink action="direction-synthesis" label="Synthèse IA" />
           <Link

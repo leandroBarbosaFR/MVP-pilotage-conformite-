@@ -1,6 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { DEMO_MODE } from "@/lib/demo";
+import { DEMO_COOKIE, resolveDemoMode } from "@/lib/demo";
 import { createMockClient } from "@/lib/mock/client";
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
@@ -11,8 +11,10 @@ type CookieToSet = { name: string; value: string; options?: CookieOptions };
  * En mode démo, renvoie un client simulé (données en mémoire).
  */
 export async function createClient() {
-  if (DEMO_MODE) return createMockClient() as unknown as ReturnType<typeof createServerClient>;
   const cookieStore = await cookies();
+  if (resolveDemoMode(cookieStore.get(DEMO_COOKIE)?.value)) {
+    return createMockClient() as unknown as ReturnType<typeof createServerClient>;
+  }
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

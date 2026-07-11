@@ -3,10 +3,10 @@ import type { ComplianceStatus } from "@/lib/types/database";
 import { STATUS_LABELS } from "@/lib/status";
 
 const STYLES: Record<ComplianceStatus, string> = {
-  ok: "border-status-ok text-status-ok",
-  warn: "border-status-warn text-status-warn",
-  danger: "border-status-danger text-status-danger",
-  none: "border-status-none text-status-none",
+  ok: "border-status-ok/30 bg-status-ok/10 text-status-ok",
+  warn: "border-status-warn/30 bg-status-warn/10 text-status-warn",
+  danger: "border-status-danger/30 bg-status-danger/10 text-status-danger",
+  none: "border-status-none/30 bg-status-none/10 text-status-none",
 };
 
 const DOT: Record<ComplianceStatus, string> = {
@@ -28,7 +28,7 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-sm border bg-background px-2 py-0.5 text-xs font-medium",
+        "inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 text-xs font-medium",
         STYLES[status],
         className
       )}

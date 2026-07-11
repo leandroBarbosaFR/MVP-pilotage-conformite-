@@ -81,7 +81,7 @@ export default async function EmployeeDetailPage({
       />
 
       <div className="rounded-md border border-border p-4">
-        <AvatarUpload employeeId={id} name={fullName} current={employee.avatar_url} />
+        <AvatarUpload companyId={company.id} employeeId={id} name={fullName} current={employee.avatar_url} />
       </div>
 
       {/* A. Informations générales */}

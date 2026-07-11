@@ -1,6 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { DEMO_MODE } from "@/lib/demo";
+import { DEMO_COOKIE, resolveDemoMode } from "@/lib/demo";
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
@@ -9,7 +9,9 @@ type CookieToSet = { name: string; value: string; options?: CookieOptions };
  * En mode démo, l'authentification est contournée.
  */
 export async function updateSession(request: NextRequest) {
-  if (DEMO_MODE) return NextResponse.next({ request });
+  if (resolveDemoMode(request.cookies.get(DEMO_COOKIE)?.value)) {
+    return NextResponse.next({ request });
+  }
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(

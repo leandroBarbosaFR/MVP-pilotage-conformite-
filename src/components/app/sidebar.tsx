@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   SquaresFourIcon as SquaresFour,
   UsersIcon as Users,
@@ -108,6 +109,12 @@ export function Sidebar({
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [closedGroups, setClosedGroups] = useState<Record<string, boolean>>({});
+  const [mounted, setMounted] = useState(false);
+  // Infobulle du menu réduit : rendue en portail `fixed` pour échapper au
+  // rognage du conteneur de navigation (`overflow-y-auto`).
+  const [tip, setTip] = useState<{ label: string; top: number; left: number } | null>(null);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
@@ -148,9 +155,30 @@ export function Sidebar({
       <Link
         key={href}
         href={href}
-        onClick={() => setOpen(false)}
+        onClick={() => {
+          setOpen(false);
+          setTip(null);
+        }}
         aria-current={active ? "page" : undefined}
-        title={collapsed ? label : undefined}
+        aria-label={collapsed ? label : undefined}
+        onMouseEnter={
+          collapsed
+            ? (e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                setTip({ label, top: r.top + r.height / 2, left: r.right + 8 });
+              }
+            : undefined
+        }
+        onMouseLeave={collapsed ? () => setTip(null) : undefined}
+        onFocus={
+          collapsed
+            ? (e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                setTip({ label, top: r.top + r.height / 2, left: r.right + 8 });
+              }
+            : undefined
+        }
+        onBlur={collapsed ? () => setTip(null) : undefined}
         className={cn(
           "group relative flex items-center rounded-md py-2 text-sm transition-colors",
           collapsed ? "justify-center px-0" : "gap-3 px-3",
@@ -161,11 +189,6 @@ export function Sidebar({
       >
         <Icon size={18} aria-hidden />
         {!collapsed ? <span className="truncate">{label}</span> : null}
-        {collapsed ? (
-          <span className="pointer-events-none absolute left-full z-50 ml-2 hidden whitespace-nowrap rounded-md border border-sidebar-border bg-sidebar-surface px-2 py-1 text-xs text-sidebar-heading group-hover:block">
-            {label}
-          </span>
-        ) : null}
       </Link>
     );
   };
@@ -267,6 +290,18 @@ export function Sidebar({
           </div>
         </div>
       </aside>
+
+      {mounted && tip
+        ? createPortal(
+            <div
+              style={{ position: "fixed", top: tip.top, left: tip.left }}
+              className="pointer-events-none z-[100] hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-sidebar-border bg-sidebar-surface px-2 py-1 text-xs text-sidebar-heading shadow-md md:block"
+            >
+              {tip.label}
+            </div>,
+            document.body
+          )
+        : null}
     </>
   );
 }
