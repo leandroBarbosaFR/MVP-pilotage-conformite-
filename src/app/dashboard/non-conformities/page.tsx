@@ -3,10 +3,13 @@ import { getNonConformities, getSites, getProfiles, getEntityNameMap, getActions
 import { createNonPilotix } from "@/lib/actions/entities";
 import { PageHeader } from "@/components/app/page-header";
 import { AddPanel } from "@/components/app/add-panel";
+import { AiActionLink } from "@/components/ai/ai-action-link";
 import { ListToolbar } from "@/components/app/list-toolbar";
 import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
+import Link from "next/link";
 import { CreateCorrectiveActionButton } from "@/components/nc/create-corrective-action-button";
+import { RemoveCorrectiveActionButton } from "@/components/nc/remove-corrective-action-button";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { ListView } from "@/components/app/list-view";
@@ -63,9 +66,12 @@ export default async function NonConformitiesPage({
         title="Non-conformités"
         description="Écarts détectés (audits, contrôles, inspections) et leur traitement."
         action={
-          <AddPanel title="Nouvelle non-conformité">
-            <NcForm sites={sites.rows} profiles={profiles} />
-          </AddPanel>
+          <>
+            <AiActionLink action="summarize-nc" label="Résumé IA" />
+            <AddPanel title="Nouvelle non-conformité">
+              <NcForm sites={sites.rows} profiles={profiles} />
+            </AddPanel>
+          </>
         }
       />
 
@@ -88,7 +94,11 @@ export default async function NonConformitiesPage({
           { header: "Gravité", cell: (n) => <StatusBadge status={SEV_TONE[n.severity] ?? "none"} label={PRIORITY_LABELS[n.severity] ?? n.severity} /> },
           { header: "Échéance", cell: (n) => formatDate(n.due_date) },
           { header: "Responsable", cell: (n) => profName(n.responsible_id) },
-          { header: "Action corrective", cell: (n) => n.corrective_action_id ? (actTitle.get(n.corrective_action_id) ?? "Oui") : "—" },
+          { header: "Action corrective", cell: (n) => n.corrective_action_id ? (
+            <Link href={`/dashboard/actions/${n.corrective_action_id}`} className="text-accent hover:underline">
+              {actTitle.get(n.corrective_action_id) ?? "Voir l'action"}
+            </Link>
+          ) : <span className="text-muted-foreground">Non associée</span> },
           { header: "Statut", cell: (n) => <StatusBadge status={(NC_STATUS_TONE[n.status] ?? "none") as ComplianceStatus} label={NC_STATUS_LABELS[n.status] ?? n.status} /> },
         ]}
         card={(n) => ({
@@ -101,7 +111,11 @@ export default async function NonConformitiesPage({
         })}
         actions={(n) => (
           <>
-            {!n.corrective_action_id ? <CreateCorrectiveActionButton ncId={n.id} /> : null}
+            {n.corrective_action_id ? (
+              <RemoveCorrectiveActionButton ncId={n.id} />
+            ) : (
+              <CreateCorrectiveActionButton ncId={n.id} />
+            )}
             <ArchiveButton table="non_conformities" id={n.id} archived={n.is_archived} />
           </>
         )}

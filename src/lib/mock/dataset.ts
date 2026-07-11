@@ -21,6 +21,11 @@ export const company: Row = {
   name: "TransPilot Demo",
   sector: "Transport / Logistique",
   employee_count: "100 à 250",
+  address: "Zone logistique Sud",
+  city: "Marseille",
+  country: "France",
+  contact_email: "contact@transpilot-demo.fr",
+  contact_phone: "04 91 00 00 00",
   created_at: NOW,
   updated_at: NOW,
 };
@@ -559,6 +564,8 @@ export const TABLES: Record<string, Row[]> = {
   audits,
   non_conformities,
   incidents,
+  reminders: [],
+  ai_interactions: [],
   audit_logs: [],
   pilot_leads: [],
 };

@@ -11,8 +11,9 @@ import {
   getProfiles,
   getSiteOptions,
 } from "@/lib/queries/entities";
-import { createCertification, createAbsence } from "@/lib/actions/entities";
+import { createCertification, createAbsence, updateAbsence } from "@/lib/actions/entities";
 import { PageHeader } from "@/components/app/page-header";
+import { AvatarUpload } from "@/components/employees/avatar-upload";
 import { AddPanel } from "@/components/app/add-panel";
 import { ArchiveButton } from "@/components/app/archive-button";
 import { DetailGrid, DetailField, DetailSection } from "@/components/app/detail-field";
@@ -39,7 +40,7 @@ import {
   PriorityLevel,
 } from "@/types/enums";
 import { formatDate } from "@/lib/utils";
-import type { Profile } from "@/lib/types/database";
+import type { Profile, EmployeeAbsence } from "@/lib/types/database";
 
 export default async function EmployeeDetailPage({
   params,
@@ -79,6 +80,10 @@ export default async function EmployeeDetailPage({
         description={[employee.job_family ?? employee.job_title, siteName !== "—" ? siteName : null].filter(Boolean).join(" · ") || undefined}
         action={<ArchiveButton table="employees" id={employee.id} archived={employee.is_archived} />}
       />
+
+      <div className="rounded-md border border-border p-4">
+        <AvatarUpload employeeId={id} name={fullName} current={employee.avatar_url} />
+      </div>
 
       {/* A. Informations générales */}
       <DetailGrid>
@@ -151,39 +156,37 @@ export default async function EmployeeDetailPage({
         </p>
         <div className="mb-3">
           <AddPanel label="Déclarer une absence" title="Nouvelle absence / aptitude">
-            <AbsenceForm employeeId={id} profiles={profiles} />
+            <AbsenceForm employeeId={id} />
           </AddPanel>
         </div>
-        <Table>
-          <THead>
-            <TR>
-              <TH>Début</TH>
-              <TH>Fin prévue</TH>
-              <TH>Reprise</TH>
-              <TH>Statut</TH>
-              <TH>Aptitude</TH>
-              <TH>Restrictions</TH>
-              <TH>Prochaine visite médicale</TH>
-            </TR>
-          </THead>
-          <tbody>
-            {absences.length === 0 ? (
-              <EmptyRow colSpan={7} message="Aucune absence enregistrée." />
-            ) : (
-              absences.map((a) => (
-                <TR key={a.id}>
-                  <TD>{formatDate(a.start_date)}</TD>
-                  <TD>{formatDate(a.expected_end_date)}</TD>
-                  <TD>{formatDate(a.return_date)}</TD>
-                  <TD>{WORK_STATUS_LABELS[a.work_status] ?? a.work_status}</TD>
-                  <TD>{a.aptitude ? APTITUDE_LABELS[a.aptitude] : "—"}</TD>
-                  <TD>{a.restrictions ?? "—"}</TD>
-                  <TD>{formatDate(a.next_medical_visit)}</TD>
-                </TR>
-              ))
-            )}
-          </tbody>
-        </Table>
+        {absences.length === 0 ? (
+          <p className="rounded-md border border-border bg-surface px-4 py-6 text-center text-sm text-muted-foreground">
+            Aucune absence enregistrée.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {absences.map((a) => (
+              <div key={a.id} className="rounded-md border border-border p-3">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+                  <DetailField label="Statut" value={WORK_STATUS_LABELS[a.work_status] ?? a.work_status} />
+                  <DetailField label="Début" value={formatDate(a.start_date)} />
+                  <DetailField label="Fin prévue" value={formatDate(a.expected_end_date)} />
+                  <DetailField label="Reprise" value={formatDate(a.return_date)} />
+                  <DetailField label="Aptitude" value={a.aptitude ? APTITUDE_LABELS[a.aptitude] : "—"} />
+                  <DetailField label="Restrictions" value={a.restrictions} />
+                  <DetailField label="Prochaine visite médicale" value={formatDate(a.next_medical_visit)} />
+                  <DetailField label="Visite de reprise" value={a.return_visit_required ? "À prévoir" : "—"} />
+                </div>
+                <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
+                  <AddPanel label="Modifier" title="Modifier l'absence">
+                    <AbsenceForm employeeId={id} absence={a} />
+                  </AddPanel>
+                  <ArchiveButton table="employee_absences" id={a.id} archived={a.is_archived} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </DetailSection>
 
       {/* EPI attribués */}
@@ -343,57 +346,60 @@ function CertificationForm({ employeeId, profiles }: { employeeId: string; profi
   );
 }
 
-function AbsenceForm({ employeeId, profiles }: { employeeId: string; profiles: Profile[] }) {
+function AbsenceForm({ employeeId, absence }: { employeeId: string; absence?: EmployeeAbsence }) {
+  const edit = !!absence;
+  const uid = absence?.id ?? "new";
   return (
-    <form action={createAbsence} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form action={edit ? updateAbsence : createAbsence} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <input type="hidden" name="employee_id" value={employeeId} />
+      {edit ? <input type="hidden" name="id" value={absence.id} /> : null}
       <div>
         <Label>Statut</Label>
-        <Select name="work_status" defaultValue="absent">
+        <Select name="work_status" defaultValue={absence?.work_status ?? "absent"}>
           {WORK_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{WORK_STATUS_LABELS[s] ?? s}</option>)}
         </Select>
       </div>
       <div>
         <Label>Aptitude</Label>
-        <Select name="aptitude" defaultValue="">
+        <Select name="aptitude" defaultValue={absence?.aptitude ?? ""}>
           <option value="">Non renseignée</option>
           {Object.values(AptitudeStatus).map((a) => <option key={a} value={a}>{APTITUDE_LABELS[a]}</option>)}
         </Select>
       </div>
       <div>
         <Label>Début</Label>
-        <Input name="start_date" type="date" />
+        <Input name="start_date" type="date" defaultValue={absence?.start_date ?? ""} />
       </div>
       <div>
         <Label>Fin prévue</Label>
-        <Input name="expected_end_date" type="date" />
+        <Input name="expected_end_date" type="date" defaultValue={absence?.expected_end_date ?? ""} />
       </div>
       <div>
         <Label>Date de reprise</Label>
-        <Input name="return_date" type="date" />
+        <Input name="return_date" type="date" defaultValue={absence?.return_date ?? ""} />
       </div>
       <div>
         <Label>Prochaine visite médicale</Label>
-        <Input name="next_medical_visit" type="date" />
+        <Input name="next_medical_visit" type="date" defaultValue={absence?.next_medical_visit ?? ""} />
       </div>
       <div className="sm:col-span-2">
         <Label>Restrictions (non médicales)</Label>
-        <Input name="restrictions" placeholder="Port de charge, conduite, horaires…" />
+        <Input name="restrictions" defaultValue={absence?.restrictions ?? ""} placeholder="Port de charge, conduite, horaires…" />
       </div>
       <div className="flex items-center gap-2">
-        <input id="is_sick_leave" name="is_sick_leave" type="checkbox" className="h-4 w-4 accent-accent" />
-        <Label className="mb-0" htmlFor="is_sick_leave">Arrêt maladie</Label>
+        <input id={`sick-${uid}`} name="is_sick_leave" type="checkbox" defaultChecked={absence?.is_sick_leave ?? false} className="h-4 w-4 accent-accent" />
+        <Label className="mb-0" htmlFor={`sick-${uid}`}>Arrêt maladie</Label>
       </div>
       <div className="flex items-center gap-2">
-        <input id="return_visit_required" name="return_visit_required" type="checkbox" className="h-4 w-4 accent-accent" />
-        <Label className="mb-0" htmlFor="return_visit_required">Visite de reprise à prévoir</Label>
+        <input id={`rv-${uid}`} name="return_visit_required" type="checkbox" defaultChecked={absence?.return_visit_required ?? false} className="h-4 w-4 accent-accent" />
+        <Label className="mb-0" htmlFor={`rv-${uid}`}>Visite de reprise à prévoir</Label>
       </div>
       <div className="sm:col-span-2">
         <Label>Notes internes (non médicales)</Label>
-        <Textarea name="internal_notes" rows={2} />
+        <Textarea name="internal_notes" rows={2} defaultValue={absence?.internal_notes ?? ""} />
       </div>
       <div className="sm:col-span-2">
-        <Button type="submit">Enregistrer</Button>
+        <Button type="submit">{edit ? "Enregistrer les modifications" : "Enregistrer"}</Button>
       </div>
     </form>
   );

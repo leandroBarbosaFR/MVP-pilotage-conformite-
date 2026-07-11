@@ -230,6 +230,66 @@ export const AUDIT_TYPES = [
   "Contrôle réglementaire", "Visite sécurité", "Autre",
 ];
 
+// --- Historique / journal d'activité ----------------------------------
+
+export const ACTIVITY_ACTION_LABELS: Record<string, string> = {
+  ARCHIVE: "Archivé",
+  RESTORE: "Restauré",
+  REMINDER: "Relance créée",
+  REMINDER_STATUS: "Statut de relance",
+  CORRECTIVE_LINK: "Action corrective créée",
+  CORRECTIVE_UNLINK: "Action corrective retirée",
+  DOCUMENT_ADD: "Document ajouté",
+  SETTINGS_UPDATE: "Paramètres modifiés",
+  CREATE: "Créé",
+  UPDATE: "Modifié",
+  INSERT: "Créé",
+  DELETE: "Supprimé",
+};
+
+export const ACTIVITY_ENTITY_LABELS: Record<string, string> = {
+  vehicles: "Véhicules",
+  employees: "Personnel",
+  equipments: "Équipements",
+  epi: "EPI",
+  obligations: "Contrôles réglementaires",
+  documents: "Documents",
+  actions: "Actions",
+  sites: "Sites",
+  providers: "Prestataires",
+  contracts: "Contrats",
+  audits: "Audits",
+  non_conformities: "Non-conformités",
+  incidents: "Incidents",
+  employee_certifications: "Habilitations",
+  employee_absences: "Absences",
+  reminders: "Relances",
+  companies: "Entreprise",
+};
+
+// --- Relances (migration 0010) ----------------------------------------
+
+export const REMINDER_CHANNELS = ["email", "telephone", "interne", "autre"];
+export const REMINDER_CHANNEL_LABELS: Record<string, string> = {
+  email: "E-mail",
+  telephone: "Téléphone",
+  interne: "Interne",
+  autre: "Autre",
+};
+
+export const REMINDER_STATUS_LABELS: Record<string, string> = {
+  A_FAIRE: "À faire",
+  ENVOYEE: "Envoyée",
+  A_RELANCER: "À relancer",
+  CLOTUREE: "Clôturée",
+};
+export const REMINDER_STATUS_TONE: Record<string, UiTone> = {
+  A_FAIRE: "warn",
+  ENVOYEE: "ok",
+  A_RELANCER: "danger",
+  CLOTUREE: "none",
+};
+
 export const DOCUMENT_TYPES = [
   "Rapport de vérification", "Certificat", "Assurance", "Contrat de maintenance",
   "Contrat de leasing", "Attestation", "Photo", "Justificatif", "Registre",

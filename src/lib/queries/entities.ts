@@ -9,9 +9,11 @@ import type {
   EmployeeCertification,
   Epi,
   Equipment,
+  AuditLog,
   ImportRow,
   Incident,
   NonPilotix,
+  Reminder,
   Notification,
   Obligation,
   Provider,
@@ -700,6 +702,31 @@ export async function getSiteDetail(id: string) {
   };
 }
 
+export async function getAuditDetail(id: string) {
+  const supabase = await createClient();
+  const auditRes = await supabase.from("audits").select("*").eq("id", id).single();
+  const audit = (auditRes.data as Audit) ?? null;
+  const empty = { audit, ncs: [] as NonPilotix[], siteName: null as string | null, profileName: new Map<string, string>(), reportDoc: null as DocumentRow | null };
+  if (!audit) return empty;
+  const companyId = audit.company_id;
+  const [ncRes, siteRes, profRes, docRes] = await Promise.all([
+    supabase.from("non_conformities").select("*").eq("source_type", "Audit").eq("source_id", id).eq("company_id", companyId).eq("is_archived", false),
+    audit.site_id ? supabase.from("sites").select("name").eq("id", audit.site_id).single() : Promise.resolve({ data: null }),
+    supabase.from("profiles").select("id, first_name, last_name, email").eq("company_id", companyId),
+    audit.report_document_id ? supabase.from("documents").select("*").eq("id", audit.report_document_id).single() : Promise.resolve({ data: null }),
+  ]);
+  const profileName = new Map<string, string>();
+  for (const p of profRes.data ?? [])
+    profileName.set(p.id as string, [p.first_name, p.last_name].filter(Boolean).join(" ") || (p.email as string) || "—");
+  return {
+    audit,
+    ncs: (ncRes.data as NonPilotix[]) ?? [],
+    siteName: (siteRes.data as { name: string } | null)?.name ?? null,
+    profileName,
+    reportDoc: (docRes.data as DocumentRow | null) ?? null,
+  };
+}
+
 export async function getObligations(companyId: string, filters: ListFilters = {}) {
   const supabase = await createClient();
   const { from, to } = range(filters.page, filters.pageSize);
@@ -791,6 +818,48 @@ export async function getMissingDocumentObligations(
   const size = filters.pageSize ?? 20;
   rows = rows.slice((page - 1) * size, (page - 1) * size + size);
   return { rows, count };
+}
+
+// --- Relances (migration 0010) ----------------------------------------
+
+export async function getReminders(companyId: string, filters: ListFilters = {}) {
+  const supabase = await createClient();
+  const { from, to } = range(filters.page, filters.pageSize);
+  let q = supabase
+    .from("reminders")
+    .select("*", { count: "exact" })
+    .eq("company_id", companyId)
+    .order("reminded_at", { ascending: false, nullsFirst: false })
+    .range(from, to);
+  if (filters.status) q = q.eq("status", filters.status);
+  if (filters.search) q = q.ilike("title", `%${filters.search}%`);
+  const { data, count } = await q;
+  return { rows: (data as Reminder[]) ?? [], count: count ?? 0 };
+}
+
+/** Historique des relances d'un élément (fiche détail). */
+export async function getEntityReminders(relatedType: string, relatedId: string): Promise<Reminder[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("reminders")
+    .select("*")
+    .eq("related_entity_type", relatedType)
+    .eq("related_entity_id", relatedId)
+    .order("reminded_at", { ascending: false, nullsFirst: false });
+  return (data as Reminder[]) ?? [];
+}
+
+/** Journal d'activité global (audit_logs), le plus récent d'abord. */
+export async function getActivityLog(companyId: string, filters: ListFilters = {}) {
+  const supabase = await createClient();
+  const { from, to } = range(filters.page, filters.pageSize);
+  const { data, count } = await supabase
+    .from("audit_logs")
+    .select("*", { count: "exact" })
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false })
+    .range(from, to);
+  return { rows: (data as AuditLog[]) ?? [], count: count ?? 0 };
 }
 
 export async function getImportHistory(companyId: string): Promise<ImportRow[]> {

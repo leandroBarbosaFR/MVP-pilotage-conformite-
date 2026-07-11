@@ -1,8 +1,9 @@
+import Link from "next/link";
 import { requireContext } from "@/lib/queries/auth";
 import { getUsersByTenant, getNotificationSettings } from "@/lib/data";
-import { saveNotificationSettings } from "@/lib/actions/admin";
+import { saveNotificationSettings, updateCompany } from "@/lib/actions/admin";
 import { canManageUsers } from "@/lib/permissions";
-import { USER_ROLE_LABELS } from "@/types/enums";
+import { USER_ROLE_LABELS, PRIORITY_LABELS } from "@/types/enums";
 import type { UserRole } from "@/lib/types/database";
 import { PageHeader } from "@/components/app/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,20 +45,64 @@ export default async function SettingsPage() {
     <div className="space-y-6">
       <PageHeader title="Paramètres" description="Entreprise, utilisateurs, rôles et notifications." />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Entreprise</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <dl className="grid grid-cols-1 gap-2 text-sm">
+      {/* Informations entreprise */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Informations entreprise</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isAdmin ? (
+            <form action={updateCompany} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <Label>Nom de l&apos;entreprise</Label>
+                <Input name="name" defaultValue={company.name} required />
+              </div>
+              <div>
+                <Label>Secteur d&apos;activité</Label>
+                <Input name="sector" defaultValue={company.sector ?? ""} />
+              </div>
+              <div>
+                <Label>Effectif</Label>
+                <Input name="employee_count" defaultValue={company.employee_count ?? ""} />
+              </div>
+              <div>
+                <Label>E-mail de contact</Label>
+                <Input name="contact_email" type="email" defaultValue={company.contact_email ?? ""} />
+              </div>
+              <div>
+                <Label>Téléphone</Label>
+                <Input name="contact_phone" defaultValue={company.contact_phone ?? ""} />
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Adresse</Label>
+                <Input name="address" defaultValue={company.address ?? ""} />
+              </div>
+              <div>
+                <Label>Ville</Label>
+                <Input name="city" defaultValue={company.city ?? ""} />
+              </div>
+              <div>
+                <Label>Pays</Label>
+                <Input name="country" defaultValue={company.country ?? "France"} />
+              </div>
+              <div className="sm:col-span-2">
+                <Button type="submit">Enregistrer</Button>
+              </div>
+            </form>
+          ) : (
+            <dl className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
               <Row label="Nom" value={company.name} />
               <Row label="Secteur" value={company.sector ?? "—"} />
               <Row label="Effectif" value={company.employee_count ?? "—"} />
+              <Row label="E-mail" value={company.contact_email ?? "—"} />
+              <Row label="Téléphone" value={company.contact_phone ?? "—"} />
+              <Row label="Adresse" value={[company.address, company.city, company.country].filter(Boolean).join(", ") || "—"} />
             </dl>
-          </CardContent>
-        </Card>
+          )}
+        </CardContent>
+      </Card>
 
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Mon compte</CardTitle>
@@ -68,6 +113,18 @@ export default async function SettingsPage() {
               <Row label="E-mail" value={profile.email ?? "—"} />
               <Row label="Rôle" value={USER_ROLE_LABELS[profile.role as UserRole] ?? profile.role} />
             </dl>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Sites et agences</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col items-start gap-3">
+            <p className="text-sm text-muted-foreground">Les sites sont gérés dans leur module dédié.</p>
+            <Link href="/dashboard/sites" className="text-sm font-medium text-accent hover:underline">
+              Gérer les sites et installations →
+            </Link>
           </CardContent>
         </Card>
       </div>
@@ -126,6 +183,31 @@ export default async function SettingsPage() {
               <Row label="Notifications par e-mail" value="Désactivé (MVP)" />
             </dl>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Statuts et priorités (référence) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Statuts et priorités</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <div>
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Statuts de suivi</p>
+            <div className="flex flex-wrap gap-2">
+              {["À jour", "À surveiller", "Éléments critiques", "Document manquant", "Archivé"].map((s) => (
+                <span key={s} className="rounded-md border border-border px-2 py-0.5 text-xs text-foreground">{s}</span>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Priorités</p>
+            <div className="flex flex-wrap gap-2">
+              {Object.values(PRIORITY_LABELS).map((p) => (
+                <span key={p} className="rounded-md border border-border px-2 py-0.5 text-xs text-foreground">{p}</span>
+              ))}
+            </div>
+          </div>
         </CardContent>
       </Card>
 

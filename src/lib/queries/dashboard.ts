@@ -140,7 +140,7 @@ export async function getModulePriorities(
   const in30 = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
   const eqCol = { company_id: companyId, is_archived: false } as const;
 
-  const [veh, certs, provs, contracts, equip, epis, absences] = await Promise.all([
+  const [veh, certs, provs, contracts, equip, epis, absences, reminders] = await Promise.all([
     supabase.from("vehicles").select("technical_inspection_expiry, insurance_expiry, tachograph_expiry, extinguisher_expiry, next_maintenance").match(eqCol),
     supabase.from("employee_certifications").select("expiry_date, type").match(eqCol),
     supabase.from("providers").select("needs_followup, insurance_expiry").match(eqCol),
@@ -148,7 +148,13 @@ export async function getModulePriorities(
     supabase.from("equipments").select("next_check_date").match(eqCol),
     supabase.from("epi").select("renewal_date").match(eqCol),
     supabase.from("employee_absences").select("next_medical_visit").match(eqCol),
+    supabase.from("reminders").select("status").eq("company_id", companyId),
   ]);
+
+  let remindersToDo = 0;
+  for (const r of reminders.data ?? []) {
+    if (r.status === "A_FAIRE" || r.status === "A_RELANCER") remindersToDo++;
+  }
 
   const soon = (d: unknown) => typeof d === "string" && d <= in30; // inclut le passé
   const late = (d: unknown) => typeof d === "string" && d < today;
@@ -206,6 +212,7 @@ export async function getModulePriorities(
     { key: "epi", label: "EPI à renouveler", count: epiCount, overdue: epiOverdue, href: "/dashboard/epi" },
     { key: "vm", label: "Visites médicales à planifier", count: vmCount, overdue: vmOverdue, href: "/dashboard/employees/echeances?type=MEDICAL_VISIT" },
     { key: "actions", label: "Actions en retard", count: extras.overdueActions, overdue: extras.overdueActions, href: "/dashboard/actions" },
+    { key: "reminders", label: "Relances à faire", count: remindersToDo, overdue: 0, href: "/dashboard/relances" },
   ];
 }
 

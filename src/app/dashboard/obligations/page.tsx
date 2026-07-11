@@ -10,6 +10,7 @@ import {
 } from "@/lib/queries/entities";
 import { PageHeader } from "@/components/app/page-header";
 import { AddPanel } from "@/components/app/add-panel";
+import { AiActionLink } from "@/components/ai/ai-action-link";
 import { ListToolbar } from "@/components/app/list-toolbar";
 import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
@@ -86,9 +87,12 @@ export default async function ObligationsPage({
         title="Contrôles réglementaires"
         description="Vue globale consolidée de toutes les obligations, tous modules confondus."
         action={
-          <AddPanel title="Nouvelle obligation">
-            <ObligationForm profiles={profiles} providers={providerOpts} entities={entities} />
-          </AddPanel>
+          <>
+            <AiActionLink action="critical-deadlines" label="Échéances IA" />
+            <AddPanel title="Nouvelle obligation">
+              <ObligationForm profiles={profiles} providers={providerOpts} entities={entities} />
+            </AddPanel>
+          </>
         }
       />
 

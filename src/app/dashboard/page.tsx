@@ -21,6 +21,7 @@ import {
 } from "@/lib/queries/dashboard";
 import { StatCard } from "@/components/app/stat-card";
 import { UpdateAlertsButton } from "@/components/app/update-alerts-button";
+import { AiActionLink } from "@/components/ai/ai-action-link";
 import { DemoButton } from "@/components/settings/demo-button";
 import { getModuleBreakdown, type ModuleStat } from "@/lib/data";
 import { canManageUsers } from "@/lib/permissions";
@@ -126,6 +127,7 @@ export default async function DashboardPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {canGenerate ? <UpdateAlertsButton /> : null}
+          <AiActionLink action="direction-synthesis" label="Synthèse IA" />
           <span className="inline-flex items-center gap-2">
             <Calendar size={16} className="text-muted-foreground" />
             {today}
@@ -168,12 +170,12 @@ export default async function DashboardPage() {
         <CardHeader>
           <CardTitle>Priorités par module</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+        <CardContent className="grid grid-cols-1 gap-px overflow-hidden sm:grid-cols-2 lg:grid-cols-3">
           {priorities.map((p) => {
             const tone: ComplianceStatus = p.overdue > 0 ? "danger" : p.count > 0 ? "warn" : "ok";
             const label = tone === "danger" ? "Éléments critiques" : tone === "warn" ? "À surveiller" : "À jour";
             return (
-              <div key={p.key} className="flex items-center justify-between gap-3 bg-surface px-4 py-3">
+              <div key={p.key} className="flex border-[1px] border-border items-center justify-between gap-3 bg-surface px-4 py-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-lg font-semibold tabular-nums text-foreground">{p.count}</span>

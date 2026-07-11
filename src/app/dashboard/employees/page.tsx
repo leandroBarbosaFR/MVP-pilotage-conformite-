@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { ListView } from "@/components/app/list-view";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Avatar } from "@/components/ui/avatar";
 import { STATUS_LABELS } from "@/lib/status";
 import {
   JOB_FAMILIES,
@@ -140,7 +141,12 @@ export default async function EmployeesPage({
         href={(e) => `/dashboard/employees/${e.id}`}
         empty="Aucun salarié."
         columns={[
-          { header: "Nom", cell: (e) => <span className="font-medium">{[e.last_name, e.first_name].filter(Boolean).join(" ")}</span> },
+          { header: "Nom", cell: (e) => (
+            <span className="flex items-center gap-2">
+              <Avatar src={e.avatar_url} name={[e.first_name, e.last_name].filter(Boolean).join(" ")} size={28} />
+              <span className="font-medium">{[e.last_name, e.first_name].filter(Boolean).join(" ")}</span>
+            </span>
+          ) },
           { header: "Métier", cell: (e) => e.job_family ?? e.job_title ?? "—" },
           { header: "Site", cell: (e) => siteName(e.site_id) },
           { header: "Statut", cell: (e) => WORK_STATUS_LABELS[e.status] ?? e.status },

@@ -13,8 +13,10 @@ import {
   FileTextIcon as FileText,
   ListChecksIcon as ListChecks,
   BellIcon as Bell,
+  BellRingingIcon as BellRinging,
   UploadSimpleIcon as UploadSimple,
   ArchiveIcon as Archive,
+  ClockCounterClockwiseIcon as ClockCounterClockwise,
   ChartBarIcon as ChartBar,
   GearSixIcon as GearSix,
   ListIcon,
@@ -28,8 +30,10 @@ import {
   WarningIcon as Warning,
   WarningOctagonIcon as WarningOctagon,
   CaretRightIcon as CaretRight,
+  SparkleIcon as Sparkle,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
+import { Avatar } from "@/components/ui/avatar";
 import { canAccessModule, type AppModule } from "@/lib/permissions";
 import { USER_ROLE_LABELS } from "@/types/enums";
 import type { UserRole } from "@/lib/types/database";
@@ -39,7 +43,10 @@ type NavGroup = { title?: string; items: NavItem[] };
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    items: [{ href: "/dashboard", label: "Tableau de bord", icon: SquaresFour, module: "dashboard" }],
+    items: [
+      { href: "/dashboard", label: "Tableau de bord", icon: SquaresFour, module: "dashboard" },
+      { href: "/dashboard/assistant-ia", label: "Assistant IA", icon: Sparkle, module: "dashboard" },
+    ],
   },
   {
     title: "Modules métier",
@@ -67,6 +74,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/dashboard/actions", label: "Actions", icon: ListChecks, module: "actions" },
       { href: "/dashboard/notifications", label: "Alertes", icon: Bell, module: "alerts" },
+      { href: "/dashboard/relances", label: "Relances", icon: BellRinging, module: "alerts" },
     ],
   },
   {
@@ -75,6 +83,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/dashboard/providers", label: "Prestataires", icon: Handshake, module: "providers" },
       { href: "/dashboard/imports", label: "Imports", icon: UploadSimple, module: "imports" },
       { href: "/dashboard/archives", label: "Archives", icon: Archive, module: "archives" },
+      { href: "/dashboard/historique", label: "Historique", icon: ClockCounterClockwise, module: "archives" },
       { href: "/dashboard/rapports", label: "Rapports", icon: ChartBar, module: "reports" },
       { href: "/dashboard/settings", label: "Paramètres", icon: GearSix, module: "settings" },
     ],
@@ -88,10 +97,12 @@ export function Sidebar({
   fullName,
   role,
   signOut,
+  avatarUrl,
 }: {
   fullName: string;
   role: UserRole;
   signOut: () => void;
+  avatarUrl?: string | null;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -125,7 +136,6 @@ export function Sidebar({
     href === "/dashboard" ? pathname === href : pathname.startsWith(href);
 
   const roleLabel = USER_ROLE_LABELS[role] ?? role;
-  const initials = fullName.split(" ").map((p) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
 
   const groups = NAV_GROUPS.map((g) => ({
     ...g,
@@ -233,11 +243,8 @@ export function Sidebar({
         {/* Utilisateur */}
         <div className="border-t border-sidebar-border bg-sidebar/80 p-3 md:sticky md:bottom-0 md:backdrop-blur">
           <div className={cn("flex items-center gap-3 rounded-md px-2 py-2", collapsed && "justify-center px-0")}>
-            <span
-              title={collapsed ? `${fullName} — ${roleLabel}` : undefined}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sidebar-surface text-xs font-semibold text-sidebar-heading"
-            >
-              {initials || "?"}
+            <span title={collapsed ? `${fullName} — ${roleLabel}` : undefined}>
+              <Avatar src={avatarUrl} name={fullName} size={36} className="border-sidebar-border bg-sidebar-surface text-sidebar-heading" />
             </span>
             {!collapsed ? (
               <>

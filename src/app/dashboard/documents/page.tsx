@@ -12,7 +12,8 @@ import { AddPanel } from "@/components/app/add-panel";
 import { ListToolbar } from "@/components/app/list-toolbar";
 import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
-import { ReminderButton } from "@/components/app/reminder-button";
+import { ReminderDialog } from "@/components/app/reminder-dialog";
+import { AiActionLink } from "@/components/ai/ai-action-link";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/input";
 import { ListView } from "@/components/app/list-view";
@@ -122,11 +123,12 @@ export default async function DocumentsPage({
           })}
           href={(o) => `/dashboard/obligations/${o.id}`}
           actions={(o) => (
-            <ReminderButton
+            <ReminderDialog
               label={o.expected_document ?? o.title}
+              module="Documents"
               relatedType={o.related_entity_type}
               relatedId={o.related_entity_id}
-              responsibleId={o.responsible_id}
+              people={profiles.map((x) => ({ id: x.id, name: [x.first_name, x.last_name].filter(Boolean).join(" ") || x.email || "—" }))}
             />
           )}
         />
@@ -163,9 +165,12 @@ export default async function DocumentsPage({
         title="Documents et preuves"
         description="Pièces justificatives et preuves de conformité, rattachées à n'importe quel module (site, véhicule, salarié, prestataire, contrat, audit…)."
         action={
-          <AddPanel title="Ajouter un document">
-            <UploadDocument companyId={company.id} />
-          </AddPanel>
+          <>
+            <AiActionLink action="missing-documents" label="Résumé IA" />
+            <AddPanel title="Ajouter un document">
+              <UploadDocument companyId={company.id} />
+            </AddPanel>
+          </>
         }
       />
       {Tabs}

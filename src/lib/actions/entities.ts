@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireContext } from "@/lib/queries/auth";
+import { logActivity } from "@/lib/actions/activity";
 
 const ARCHIVABLE = new Set([
   "vehicles",
@@ -44,7 +45,7 @@ function statusFromExpiry(expiry: string | null): string {
 /** Archive / désarchive un enregistrement (aucune suppression définitive). */
 export async function toggleArchive(table: string, id: string, archive = true) {
   if (!ARCHIVABLE.has(table)) throw new Error("Table non autorisée");
-  const { profile } = await requireContext();
+  const { profile, company } = await requireContext();
   const supabase = await createClient();
   await supabase
     .from(table)
@@ -54,6 +55,11 @@ export async function toggleArchive(table: string, id: string, archive = true) {
       archived_by: archive ? profile.id : null,
     })
     .eq("id", id);
+  await logActivity(supabase, company.id, profile.id, {
+    actionType: archive ? "ARCHIVE" : "RESTORE",
+    entityType: table,
+    entityId: id,
+  });
   // Revalide tout le sous-arbre /dashboard : listes ET pages détail, quelle
   // que soit la table (gère aussi les routes à tiret, ex. non-conformities).
   revalidatePath("/dashboard", "layout");
@@ -145,9 +151,51 @@ export async function createCorrectiveAction(ncId: string) {
       .update({ corrective_action_id: created.id, status: "IN_PROGRESS" })
       .eq("id", ncId);
   }
+  await logActivity(supabase, company.id, profile.id, {
+    actionType: "CORRECTIVE_LINK",
+    entityType: "non_conformities",
+    entityId: ncId,
+    label: nc.title as string,
+  });
   revalidatePath("/dashboard/non-conformities");
   revalidatePath("/dashboard/actions");
   revalidatePath("/dashboard");
+}
+
+/** Modifie une action existante (fiche action, réversible). */
+export async function updateAction(formData: FormData) {
+  const { profile, company } = await requireContext();
+  const supabase = await createClient();
+  const id = s(formData.get("id"));
+  if (!id) return;
+  const status = s(formData.get("status")) ?? "TODO";
+  const done = status === "DONE";
+  const title = s(formData.get("title")) ?? "Sans titre";
+  await supabase
+    .from("actions")
+    .update({
+      title,
+      description: s(formData.get("description")),
+      assigned_to: s(formData.get("assigned_to")),
+      supervisor_id: s(formData.get("supervisor_id")),
+      due_date: s(formData.get("due_date")),
+      priority: s(formData.get("priority")) ?? "MEDIUM",
+      status,
+      comment: s(formData.get("comment")),
+      completed_at: done ? new Date().toISOString() : null,
+      completed_by: done ? profile.id : null,
+    })
+    .eq("id", id);
+  await logActivity(supabase, company.id, profile.id, {
+    actionType: "UPDATE",
+    entityType: "actions",
+    entityId: id,
+    label: title,
+    comment: `Statut : ${status}`,
+  });
+  revalidatePath(`/dashboard/actions/${id}`);
+  revalidatePath("/dashboard/actions");
+  revalidatePath("/dashboard", "layout");
 }
 
 export async function updateActionStatus(id: string, status: string) {
@@ -221,6 +269,19 @@ export async function createEmployee(formData: FormData) {
   revalidatePath("/dashboard/employees");
 }
 
+/** Enregistre l'URL de la photo (avatar) d'un salarié. */
+export async function updateEmployeeAvatar(employeeId: string, avatarUrl: string | null) {
+  const { company } = await requireContext();
+  const supabase = await createClient();
+  await supabase
+    .from("employees")
+    .update({ avatar_url: avatarUrl })
+    .eq("id", employeeId)
+    .eq("company_id", company.id);
+  revalidatePath(`/dashboard/employees/${employeeId}`);
+  revalidatePath("/dashboard/employees");
+}
+
 /** Certification / habilitation / visite médicale / permis / EPI d'un salarié. */
 export async function createCertification(formData: FormData) {
   const { company } = await requireContext();
@@ -244,6 +305,37 @@ export async function createCertification(formData: FormData) {
   if (empId) revalidatePath(`/dashboard/employees/${empId}`);
   revalidatePath("/dashboard/employees");
   revalidatePath("/dashboard/employees/echeances");
+  revalidatePath("/dashboard");
+}
+
+/** Met à jour une absence existante (sans diagnostic médical). */
+export async function updateAbsence(formData: FormData) {
+  const { company, profile } = await requireContext();
+  const supabase = await createClient();
+  const id = s(formData.get("id"));
+  if (!id) return;
+  const empId = s(formData.get("employee_id"));
+  await supabase
+    .from("employee_absences")
+    .update({
+      is_sick_leave: bool(formData.get("is_sick_leave")),
+      start_date: s(formData.get("start_date")),
+      expected_end_date: s(formData.get("expected_end_date")),
+      return_date: s(formData.get("return_date")),
+      work_status: s(formData.get("work_status")) ?? "absent",
+      aptitude: s(formData.get("aptitude")),
+      restrictions: s(formData.get("restrictions")),
+      next_medical_visit: s(formData.get("next_medical_visit")),
+      return_visit_required: bool(formData.get("return_visit_required")),
+      internal_notes: s(formData.get("internal_notes")),
+    })
+    .eq("id", id);
+  await logActivity(supabase, company.id, profile.id, {
+    actionType: "UPDATE",
+    entityType: "employee_absences",
+    entityId: id,
+  });
+  if (empId) revalidatePath(`/dashboard/employees/${empId}`);
   revalidatePath("/dashboard");
 }
 
@@ -363,6 +455,11 @@ export async function createDocument(input: {
     responsible_id: input.responsible_id ?? null,
     uploaded_by: profile.id,
   });
+  await logActivity(supabase, company.id, profile.id, {
+    actionType: "DOCUMENT_ADD",
+    entityType: "documents",
+    label: input.title,
+  });
   revalidatePath("/dashboard/documents");
   revalidatePath("/dashboard");
 }
@@ -402,6 +499,8 @@ export async function createProvider(formData: FormData) {
     email: s(formData.get("email")),
     phone: s(formData.get("phone")),
     address: s(formData.get("address")),
+    address_complement: s(formData.get("address_complement")),
+    postal_code: s(formData.get("postal_code")),
     city: s(formData.get("city")),
     country: s(formData.get("country")),
     site_id: s(formData.get("site_id")),
@@ -543,32 +642,41 @@ export async function createIncidentCorrectiveAction(incidentId: string) {
 }
 
 /**
- * Relance rapide : crée une action de relance (module Actions, catégorie « Relance »)
- * rattachée à l'élément, et horodate la relance côté prestataire le cas échéant.
- * L'envoi d'e-mail n'est pas encore branché — la structure est prête.
+ * Enregistre une relance dans la table `reminders` (historique complet) et
+ * horodate la relance côté prestataire le cas échéant. L'envoi d'e-mail n'est
+ * pas branché — la structure est prête.
  */
 export async function createReminder(input: {
   label: string;
+  module?: string | null;
   relatedType?: string | null;
   relatedId?: string | null;
   providerId?: string | null;
-  responsibleId?: string | null;
+  personId?: string | null;
+  personName?: string | null;
+  email?: string | null;
   channel?: string | null;
+  status?: string | null;
+  nextReminderAt?: string | null;
+  comment?: string | null;
 }) {
   const { company, profile } = await requireContext();
   const supabase = await createClient();
 
-  await supabase.from("actions").insert({
+  await supabase.from("reminders").insert({
     company_id: company.id,
-    title: `Relancer : ${input.label}`,
-    category: "Relance",
-    description: input.channel ? `Relance à effectuer (${input.channel}).` : "Relance à effectuer.",
+    module: input.module ?? null,
     related_entity_type: input.relatedType ?? (input.providerId ? "PROVIDER" : null),
     related_entity_id: input.relatedId ?? input.providerId ?? null,
-    source: "Relance",
-    status: "TODO",
-    priority: "HIGH",
-    assigned_to: input.responsibleId ?? null,
+    title: input.label,
+    person_to_remind: input.personName ?? null,
+    person_id: input.personId ?? null,
+    email: input.email ?? null,
+    channel: input.channel ?? "interne",
+    status: input.status ?? "ENVOYEE",
+    reminded_at: new Date().toISOString(),
+    next_reminder_at: input.nextReminderAt ?? null,
+    comment: input.comment ?? null,
     created_by: profile.id,
   });
 
@@ -589,6 +697,66 @@ export async function createReminder(input: {
       .eq("id", input.providerId);
   }
 
+  await logActivity(supabase, company.id, profile.id, {
+    actionType: "REMINDER",
+    entityType: "reminders",
+    entityId: input.relatedId ?? input.providerId ?? null,
+    label: input.label,
+    comment: input.comment ?? null,
+  });
+
+  revalidatePath("/dashboard", "layout");
+}
+
+/** Change le statut d'une relance (envoyée / à relancer / clôturée). */
+export async function updateReminderStatus(id: string, status: string) {
+  const { company, profile } = await requireContext();
+  const supabase = await createClient();
+  await supabase.from("reminders").update({ status }).eq("id", id);
+  await logActivity(supabase, company.id, profile.id, {
+    actionType: "REMINDER_STATUS",
+    entityType: "reminders",
+    entityId: id,
+    comment: status,
+  });
+  revalidatePath("/dashboard", "layout");
+}
+
+/**
+ * Retire le lien entre une non-conformité et son action corrective (sans
+ * supprimer l'action). Repasse la non-conformité en « Ouverte ».
+ * `archiveAction` = true archive aussi l'action corrective devenue orpheline.
+ */
+export async function removeCorrectiveAction(ncId: string, archiveAction = false) {
+  const { profile, company } = await requireContext();
+  const supabase = await createClient();
+  const { data: nc } = await supabase
+    .from("non_conformities")
+    .select("corrective_action_id, status, title")
+    .eq("id", ncId)
+    .single();
+  const actionId = nc?.corrective_action_id as string | null;
+
+  await supabase
+    .from("non_conformities")
+    .update({ corrective_action_id: null, status: "OPEN" })
+    .eq("id", ncId);
+
+  if (actionId && archiveAction) {
+    await supabase
+      .from("actions")
+      .update({ is_archived: true, archived_at: new Date().toISOString(), archived_by: profile.id })
+      .eq("id", actionId);
+  }
+
+  await logActivity(supabase, company.id, profile.id, {
+    actionType: "CORRECTIVE_UNLINK",
+    entityType: "non_conformities",
+    entityId: ncId,
+    label: (nc?.title as string) ?? null,
+  });
+
+  revalidatePath("/dashboard/non-conformities");
   revalidatePath("/dashboard", "layout");
 }
 

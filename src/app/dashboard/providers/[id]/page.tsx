@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireContext } from "@/lib/queries/auth";
-import { getProviderDetail } from "@/lib/queries/entities";
+import { getProviderDetail, getEntityReminders, getProfiles } from "@/lib/queries/entities";
 import { PageHeader } from "@/components/app/page-header";
 import { ArchiveButton } from "@/components/app/archive-button";
+import { ReminderDialog } from "@/components/app/reminder-dialog";
 import { DetailGrid, DetailField, DetailSection } from "@/components/app/detail-field";
 import { Table, THead, TR, TH, TD, EmptyRow } from "@/components/ui/table";
 import { ClickableRow } from "@/components/app/clickable-row";
@@ -16,21 +17,28 @@ import {
   complianceFromActionStatus,
   statusFromDate,
 } from "@/lib/status";
-import { CONTRACT_STATUS_LABELS, CONTRACT_STATUS_TONE } from "@/types/enums";
+import {
+  CONTRACT_STATUS_LABELS,
+  CONTRACT_STATUS_TONE,
+  REMINDER_STATUS_LABELS,
+  REMINDER_STATUS_TONE,
+  REMINDER_CHANNEL_LABELS,
+} from "@/types/enums";
 import { formatDate } from "@/lib/utils";
 import type { ComplianceStatus } from "@/lib/types/database";
 
 export default async function ProviderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireContext();
+  const { company } = await requireContext();
 
-  const { provider, contracts, obligations, documents, actions, siteName, profileName } =
-    await getProviderDetail(id);
+  const [{ provider, contracts, obligations, documents, actions, siteName, profileName }, reminders, profiles] =
+    await Promise.all([getProviderDetail(id), getEntityReminders("PROVIDER", id), getProfiles(company.id)]);
   if (!provider) notFound();
 
   const today = new Date().toISOString().slice(0, 10);
   const insuranceExpired = provider.insurance_expiry ? provider.insurance_expiry < today : false;
   const pName = (pid: string | null) => (pid ? profileName.get(pid) ?? "—" : "—");
+  const people = profiles.map((x) => ({ id: x.id, name: [x.first_name, x.last_name].filter(Boolean).join(" ") || x.email || "—" }));
 
   return (
     <div className="space-y-6">
@@ -39,7 +47,12 @@ export default async function ProviderDetailPage({ params }: { params: Promise<{
         backLabel="Retour aux prestataires"
         title={provider.name}
         description={[provider.provider_type, siteName].filter(Boolean).join(" · ") || undefined}
-        action={<ArchiveButton table="providers" id={provider.id} archived={provider.is_archived} />}
+        action={
+          <>
+            <ReminderDialog label={provider.name} module="Prestataires" relatedType="PROVIDER" relatedId={provider.id} providerId={provider.id} people={people} defaultPersonName={provider.contact_name} />
+            <ArchiveButton table="providers" id={provider.id} archived={provider.is_archived} />
+          </>
+        }
       />
 
       {/* Informations générales */}
@@ -49,7 +62,9 @@ export default async function ProviderDetailPage({ params }: { params: Promise<{
         <DetailField label="Contact" value={provider.contact_name} />
         <DetailField label="Email" value={provider.email} />
         <DetailField label="Téléphone" value={provider.phone} />
-        <DetailField label="Ville" value={provider.city} />
+        <DetailField label="Adresse" value={provider.address} />
+        <DetailField label="Ville" value={[provider.postal_code, provider.city].filter(Boolean).join(" ")} />
+        <DetailField label="Pays" value={provider.country} />
         <DetailField label="Responsable interne" value={pName(provider.responsible_id)} />
         <DetailField
           label="Assurance"
@@ -62,6 +77,8 @@ export default async function ProviderDetailPage({ params }: { params: Promise<{
           }
         />
         <DetailField label="Relance" value={provider.needs_followup ? "À relancer" : "—"} />
+        <DetailField label="Dernière relance" value={formatDate(provider.last_reminded_at)} />
+        <DetailField label="Nombre de relances" value={provider.reminder_count ?? 0} />
       </DetailGrid>
 
       {/* Contrats liés */}
@@ -154,6 +171,31 @@ export default async function ProviderDetailPage({ params }: { params: Promise<{
                   <TD>{formatDate(d.expiration_date)}</TD>
                   <TD><StatusBadge status={statusFromDate(d.expiration_date)} /></TD>
                 </ClickableRow>
+              ))
+            )}
+          </tbody>
+        </Table>
+      </DetailSection>
+
+      {/* Historique des relances */}
+      <DetailSection title="Historique des relances">
+        <Table>
+          <THead>
+            <TR><TH>Date</TH><TH>Personne</TH><TH>Canal</TH><TH>Statut</TH><TH>Commentaire</TH><TH>Créée par</TH></TR>
+          </THead>
+          <tbody>
+            {reminders.length === 0 ? (
+              <EmptyRow colSpan={6} message="Aucune relance enregistrée." />
+            ) : (
+              reminders.map((r) => (
+                <TR key={r.id}>
+                  <TD>{formatDate(r.reminded_at)}</TD>
+                  <TD>{r.person_to_remind ?? pName(r.person_id)}</TD>
+                  <TD>{REMINDER_CHANNEL_LABELS[r.channel] ?? r.channel}</TD>
+                  <TD><StatusBadge status={(REMINDER_STATUS_TONE[r.status] ?? "none") as ComplianceStatus} label={REMINDER_STATUS_LABELS[r.status] ?? r.status} /></TD>
+                  <TD>{r.comment ?? "—"}</TD>
+                  <TD>{pName(r.created_by)}</TD>
+                </TR>
               ))
             )}
           </tbody>

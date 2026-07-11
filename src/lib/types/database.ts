@@ -71,6 +71,11 @@ export interface Company {
   name: string;
   sector: string | null;
   employee_count: string | null;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -86,6 +91,7 @@ export interface Profile {
   job_title: string | null;
   phone: string | null;
   is_active: boolean;
+  avatar_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -139,6 +145,7 @@ export interface Employee extends ArchivableRow {
   email: string | null;
   phone: string | null;
   status: string;
+  avatar_url: string | null;
   responsible_id: string | null;
   supervisor_id: string | null;
 }
@@ -328,6 +335,8 @@ export interface Provider extends ArchivableRow {
   email: string | null;
   phone: string | null;
   address: string | null;
+  address_complement: string | null;
+  postal_code: string | null;
   city: string | null;
   country: string | null;
   notes: string | null;
@@ -473,6 +482,26 @@ export interface Incident extends ArchivableRow {
   related_entity_id: string | null;
   corrective_action_id: string | null;
   document_id: string | null;
+}
+
+export interface Reminder {
+  id: string;
+  company_id: string;
+  module: string | null;
+  related_entity_type: string | null;
+  related_entity_id: string | null;
+  title: string;
+  person_to_remind: string | null;
+  person_id: string | null;
+  email: string | null;
+  channel: string;
+  status: string;
+  reminded_at: string;
+  next_reminder_at: string | null;
+  comment: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface NotificationSettings {

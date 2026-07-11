@@ -3,10 +3,11 @@ import { getProviders, getProfiles, getSiteOptions } from "@/lib/queries/entitie
 import { createProvider } from "@/lib/actions/entities";
 import { PageHeader } from "@/components/app/page-header";
 import { AddPanel } from "@/components/app/add-panel";
+import { AiActionLink } from "@/components/ai/ai-action-link";
 import { ListToolbar } from "@/components/app/list-toolbar";
 import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
-import { ReminderButton } from "@/components/app/reminder-button";
+import { ReminderDialog } from "@/components/app/reminder-dialog";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { ListView } from "@/components/app/list-view";
@@ -60,9 +61,12 @@ export default async function ProvidersPage({
         title="Prestataires"
         description="Entreprises externes : contrôle, maintenance, assurance, médecine du travail, formation — documents, contrats et relances."
         action={
-          <AddPanel title="Nouveau prestataire">
-            <ProviderForm profiles={profiles} sites={sites} />
-          </AddPanel>
+          <>
+            <AiActionLink action="provider-reminder" label="Relance IA" />
+            <AddPanel title="Nouveau prestataire">
+              <ProviderForm profiles={profiles} sites={sites} />
+            </AddPanel>
+          </>
         }
       />
 
@@ -103,7 +107,15 @@ export default async function ProvidersPage({
         })}
         actions={(p) => (
           <>
-            <ReminderButton label={p.name} providerId={p.id} responsibleId={p.responsible_id} />
+            <ReminderDialog
+              label={p.name}
+              module="Prestataires"
+              relatedType="PROVIDER"
+              relatedId={p.id}
+              providerId={p.id}
+              people={profiles.map((x) => ({ id: x.id, name: [x.first_name, x.last_name].filter(Boolean).join(" ") || x.email || "—" }))}
+              defaultPersonName={p.contact_name}
+            />
             <ArchiveButton table="providers" id={p.id} archived={p.is_archived} />
           </>
         )}
@@ -152,9 +164,25 @@ function ProviderForm({ profiles, sites }: { profiles: Profile[]; sites: { id: s
         <Label>Téléphone</Label>
         <Input name="phone" />
       </div>
+      <div className="sm:col-span-2">
+        <Label>Adresse</Label>
+        <Input name="address" />
+      </div>
+      <div className="sm:col-span-2">
+        <Label>Complément d&apos;adresse</Label>
+        <Input name="address_complement" />
+      </div>
+      <div>
+        <Label>Code postal</Label>
+        <Input name="postal_code" />
+      </div>
       <div>
         <Label>Ville</Label>
         <Input name="city" />
+      </div>
+      <div>
+        <Label>Pays</Label>
+        <Input name="country" defaultValue="France" />
       </div>
       <div>
         <Label>Assurance (expiration)</Label>

@@ -70,6 +70,7 @@ export default async function AuditsPage({
       <ListView
         rows={rows}
         getKey={(a) => a.id}
+        href={(a) => `/dashboard/audits/${a.id}`}
         empty="Aucun audit."
         columns={[
           { header: "Titre", cell: (a) => <span className="font-medium">{a.title}</span> },

@@ -11,6 +11,7 @@ import {
 } from "@/lib/queries/entities";
 import { PageHeader } from "@/components/app/page-header";
 import { AddPanel } from "@/components/app/add-panel";
+import { AiActionLink } from "@/components/ai/ai-action-link";
 import { ListToolbar } from "@/components/app/list-toolbar";
 import { Pagination } from "@/components/app/pagination";
 import { ArchiveButton } from "@/components/app/archive-button";
@@ -82,9 +83,12 @@ export default async function ActionsPage({
         title="Actions"
         description="Suivi des actions correctives et plans d'action."
         action={
-          <AddPanel title="Nouvelle action">
-            <ActionForm profiles={profiles} obligations={obligations.rows} entities={entities} />
-          </AddPanel>
+          <>
+            <AiActionLink action="prioritize-actions" label="Prioriser (IA)" />
+            <AddPanel title="Nouvelle action">
+              <ActionForm profiles={profiles} obligations={obligations.rows} entities={entities} />
+            </AddPanel>
+          </>
         }
       />
 
