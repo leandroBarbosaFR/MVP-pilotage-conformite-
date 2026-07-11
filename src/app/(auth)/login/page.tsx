@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ShieldCheckIcon as ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 import { LoginForm } from "@/components/auth/login-form";
+import { DemoEntry } from "@/components/auth/demo-entry";
+import { DEMO_ALLOWED } from "@/lib/demo";
 
 export default async function LoginPage({
   searchParams,
@@ -28,6 +30,17 @@ export default async function LoginPage({
             </div>
           ) : null}
           <LoginForm redirectTo={redirect ?? "/dashboard"} />
+
+          {DEMO_ALLOWED ? (
+            <>
+              <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />
+                ou
+                <span className="h-px flex-1 bg-border" />
+              </div>
+              <DemoEntry />
+            </>
+          ) : null}
         </div>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">

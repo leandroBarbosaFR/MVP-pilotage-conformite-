@@ -235,7 +235,8 @@ export function Sidebar({
         </div>
 
         {/* Navigation */}
-        <nav data-tour="nav" className="sidebar-scroll flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
+        <div className="relative min-h-0 flex-1">
+        <nav data-tour="nav" className="sidebar-scroll flex h-full flex-col gap-0.5 overflow-y-auto p-3 pb-10">
           {collapsed
             ? groups.map((g, gi) => (
                 <Fragment key={g.title ?? gi}>
@@ -262,6 +263,12 @@ export function Sidebar({
                 );
               })}
         </nav>
+          {/* Dégradé de fondu en bas de la navigation (effet visuel + séparation du bloc admin) */}
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-sidebar via-sidebar/80 to-transparent"
+            aria-hidden
+          />
+        </div>
 
         {/* Utilisateur */}
         <div className="border-t border-sidebar-border bg-sidebar/80 p-3 md:sticky md:bottom-0 md:backdrop-blur">
